@@ -1,0 +1,41 @@
+package routes
+
+import (
+	"socialmedia/controllers"
+	"socialmedia/middlewares"
+
+	"github.com/gofiber/fiber/v2"
+)
+
+func Setup(app *fiber.App) {
+	api := app.Group("/api")
+
+	// Public routes.
+	api.Post("/register", controllers.Register)
+	api.Post("/login", controllers.Login)
+	api.Get("/auth/google", controllers.GoogleLogin)
+	api.Get("/auth/google/callback", controllers.GoogleCallback)
+
+	// Protected routes (require JWT authentication).
+	api.Use(middlewares.JWTMiddleware)
+
+	// User routes.
+	api.Get("/profile", controllers.GetProfile)
+	api.Post("/follow/:id", controllers.FollowUser)
+	api.Post("/unfollow/:id", controllers.UnfollowUser)
+
+	// Post routes.
+	api.Post("/posts", controllers.CreatePost)
+	api.Put("/posts/:id", controllers.EditPost)
+	api.Delete("/posts/:id", controllers.DeletePost)
+	api.Get("/timeline", controllers.Timeline)
+
+	// Comment routes.
+	api.Post("/posts/:id/comments", controllers.AddComment)
+	api.Put("/comments/:id", controllers.EditComment)
+	api.Delete("/comments/:id", controllers.DeleteComment)
+
+	// Like routes.
+	api.Post("/posts/:id/like", controllers.LikePost)
+	api.Delete("/posts/:id/like", controllers.UnlikePost)
+}
