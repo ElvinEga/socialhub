@@ -11,7 +11,12 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// RegisterInput represents the expected payload on registration.
+type AuthResponse struct {
+	Status  string `json:"status"`
+	Message string `json:"message"`
+	Token   string `json:"token,omitempty"` // Token is optional
+}
+
 type RegisterInput struct {
 	Email          string `json:"email"`
 	Password       string `json:"password"`
@@ -20,7 +25,17 @@ type RegisterInput struct {
 	Bio            string `json:"bio"`
 }
 
-// Register a new user and auto‐generate a username.
+// Register godoc
+// @Summary Register a new user
+// @Description Create a new user account with auto-generated username
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body models.User true "User Data"
+// @Success 201 {object} AuthResponse
+// @Failure 400 {object} AuthResponse
+// @Failure 500 {object} AuthResponse
+// @Router /api/register [post]
 func Register(c *fiber.Ctx) error {
 	var input RegisterInput
 	if err := c.BodyParser(&input); err != nil {
@@ -65,13 +80,23 @@ func Register(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"token": token, "user": user})
 }
 
-// LoginInput represents the expected payload for login.
 type LoginInput struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
-// Login validates credentials and returns a JWT token.
+// Login godoc
+// @Summary Login user
+// @Description Authenticate user and return JWT token
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body models.User true "User Credentials"
+// @Success 200 {object} AuthResponse
+// @Failure 400 {object} AuthResponse
+// @Failure 401 {object} AuthResponse
+// @Failure 500 {object} AuthResponse
+// @Router /api/login [post]
 func Login(c *fiber.Ctx) error {
 	var input LoginInput
 	if err := c.BodyParser(&input); err != nil {

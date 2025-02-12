@@ -3,8 +3,11 @@ package main
 import (
 	"log"
 	"socialmedia/config"
+	_ "socialmedia/docs"
 	"socialmedia/models"
 	"socialmedia/routes"
+
+	fiberSwagger "github.com/swaggo/fiber-swagger"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -19,6 +22,7 @@ func main() {
 
 	// Initialize the Fiber app
 	app := fiber.New()
+	app.Get("/swagger/*", fiberSwagger.WrapHandler)
 
 	// Register API routes
 	routes.Setup(app)
