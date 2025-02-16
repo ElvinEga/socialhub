@@ -38,4 +38,9 @@ func Setup(app *fiber.App) {
 	// Like routes.
 	api.Post("/posts/:id/like", controllers.LikePost)
 	api.Delete("/posts/:id/like", controllers.UnlikePost)
+
+	// AI Chat Post routes.
+	api.Post("/ai-posts", controllers.CreateAIChatPost)
+	api.Post("/ai-posts/:id/messages", controllers.AddChatMessage)
+	api.Get("/ai-posts/:id", controllers.GetAIChatPost)
 }
