@@ -40,7 +40,8 @@ vendor
 tmp
 
 # Environment variables
-.gitignore
+.env
+.local.env
 
 # Logs
 *.log
