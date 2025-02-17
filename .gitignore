@@ -36,3 +36,5 @@
 vendor/
 vendor
 /Godeps/
+/tmp
+tmp

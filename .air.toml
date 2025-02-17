@@ -1,0 +1,22 @@
+# .air.toml
+
+# The log level: debug, info, warn, error
+log_level = "debug"
+
+# Which binary to run
+bin = "socialmedia"
+
+# The main package to watch
+main = "main.go"
+
+# Command to run after a rebuild
+cmd = "go run main.go"
+
+# Extensions to watch
+include_ext = ["go", "tpl", "tmpl", "html"]
+
+# Directories to ignore
+exclude_dir = ["assets", "tmp", "vendor", "docs"]
+
+# Delay before restarting after a change (in ms)
+delay = 100
