@@ -8,9 +8,27 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+type PostInput struct {
+	Content  string `json:"content"`
+	ImageURL string `json:"image_url"`
+}
+
+type MessageResponse struct {
+	Message string `json:"message"`
+}
+
 // CreatePost allows an authenticated user to create a new post.
+// @Summary Create a new post
+// @Description Create a new post with content and optional image URL
+// @Tags posts
+// @Accept json
+// @Produce json
+// @Param postInput body PostInput true "Post Input"
+// @Success 200 {object} models.Post
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /posts [post]
 func CreatePost(c *fiber.Ctx) error {
-	// Retrieve the authenticated user’s ID (set by the JWT middleware)
 	userID := c.Locals("user_id").(uint)
 
 	type PostInput struct {
@@ -39,6 +57,18 @@ func CreatePost(c *fiber.Ctx) error {
 }
 
 // EditPost allows the owner to update a post.
+// @Summary Edit a post
+// @Description Edit a post's content and image URL
+// @Tags posts
+// @Accept json
+// @Produce json
+// @Param id path int true "Post ID"
+// @Param postInput body PostInput true "Post Input"
+// @Success 200 {object} models.Post
+// @Failure 400 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Router /posts/{id} [put]
 func EditPost(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(uint)
 	postID, err := strconv.Atoi(c.Params("id"))
@@ -72,6 +102,16 @@ func EditPost(c *fiber.Ctx) error {
 }
 
 // DeletePost allows the owner to delete a post.
+// @Summary Delete a post
+// @Description Delete a post by ID
+// @Tags posts
+// @Produce json
+// @Param id path int true "Post ID"
+// @Success 200 {object} MessageResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Router /posts/{id} [delete]
 func DeletePost(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(uint)
 	postID, err := strconv.Atoi(c.Params("id"))
@@ -93,16 +133,21 @@ func DeletePost(c *fiber.Ctx) error {
 }
 
 // Timeline returns posts created by the authenticated user and those they follow.
+// @Summary Get timeline posts
+// @Description Get posts created by the authenticated user and those they follow
+// @Tags posts
+// @Produce json
+// @Success 200 {array} models.Post
+// @Failure 404 {object} ErrorResponse
+// @Router /posts/timeline [get]
 func Timeline(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(uint)
 
-	// Load the current user with the “Following” relationship.
 	var user models.User
 	if err := models.DB.Preload("Following").First(&user, userID).Error; err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
 	}
 
-	// Build a slice of user IDs: the current user plus all they follow.
 	ids := []uint{userID}
 	for _, u := range user.Following {
 		ids = append(ids, u.ID)
