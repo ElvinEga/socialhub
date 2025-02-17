@@ -27,19 +27,19 @@ type ChatMessageResponse struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type Request struct {
+	Content string `json:"content"`
+}
+
 // CreateAIChatPost godoc
 // @Summary Create an AI Chat Post
 // @Description Create a new AI chat post with an initial prompt. The post type will be set to "ai".
 // @Tags AIChat
 // @Accept json
 // @Produce json
-//
-//	@Param request body struct {
-//	    Content string `json:"content"`
-//	} true "Initial prompt from the user"
-//
+// @Param request body Request true "Initial prompt from the user"
 // @Success 201 {object} AIChatPostResponse
-// @Failure 400 {object} fiber.Map
+// @Failure 400 {object} ErrorResponse
 // @Router /api/ai-posts [post]
 func CreateAIChatPost(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(uint)
@@ -50,6 +50,11 @@ func CreateAIChatPost(c *fiber.Ctx) error {
 	var body Request
 	if err := c.BodyParser(&body); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	if body.Content == "" {
+		// If the Content field is empty, return a 400 Bad Request status with an error message
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Content cannot be empty"})
 	}
 
 	// Create a new Post with PostType "ai"
@@ -100,14 +105,9 @@ func CreateAIChatPost(c *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param id path int true "AI Chat Post ID"
-//
-//	@Param request body struct {
-//	    Sender  string `json:"sender"`  // "user" or "ai"
-//	    Content string `json:"content"`
-//	} true "Chat message data"
-//
+// @Param request body Request true "Chat message data"
 // @Success 200 {object} ChatMessageResponse
-// @Failure 400 {object} fiber.Map
+// @Failure 400 {object} ErrorResponse
 // @Router /api/ai-posts/{id}/messages [post]
 func AddChatMessage(c *fiber.Ctx) error {
 	postID, err := strconv.Atoi(c.Params("id"))
@@ -159,8 +159,8 @@ func AddChatMessage(c *fiber.Ctx) error {
 // @Produce json
 // @Param id path int true "AI Chat Post ID"
 // @Success 200 {object} AIChatPostResponse
-// @Failure 400 {object} fiber.Map
-// @Failure 404 {object} fiber.Map
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
 // @Router /api/ai-posts/{id} [get]
 func GetAIChatPost(c *fiber.Ctx) error {
 	postID, err := strconv.Atoi(c.Params("id"))

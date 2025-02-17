@@ -1,4 +1,21 @@
 definitions:
+  controllers.AIChatPostResponse:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      messages:
+        items:
+          $ref: '#/definitions/controllers.ChatMessageResponse'
+        type: array
+      post_type:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
   controllers.AuthResponse:
     properties:
       message:
@@ -7,6 +24,27 @@ definitions:
         type: string
       token:
         description: Token is optional
+        type: string
+    type: object
+  controllers.ChatMessageResponse:
+    properties:
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      sender:
+        type: string
+    type: object
+  controllers.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  controllers.Request:
+    properties:
+      content:
         type: string
     type: object
   models.Comment:
@@ -61,6 +99,8 @@ definitions:
         items:
           $ref: '#/definitions/models.Like'
         type: array
+      post_type:
+        type: string
       updated_at:
         type: string
       user:
@@ -101,6 +141,92 @@ definitions:
 info:
   contact: {}
 paths:
+  /api/ai-posts:
+    post:
+      consumes:
+      - application/json
+      description: Create a new AI chat post with an initial prompt. The post type
+        will be set to "ai".
+      parameters:
+      - description: Initial prompt from the user
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.Request'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/controllers.AIChatPostResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+      summary: Create an AI Chat Post
+      tags:
+      - AIChat
+  /api/ai-posts/{id}:
+    get:
+      description: Retrieve an AI chat post along with its conversation thread.
+      parameters:
+      - description: AI Chat Post ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.AIChatPostResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+      summary: Get an AI Chat Post
+      tags:
+      - AIChat
+  /api/ai-posts/{id}/messages:
+    post:
+      consumes:
+      - application/json
+      description: Append a new chat message (either a prompt or reply) to an existing
+        AI chat post.
+      parameters:
+      - description: AI Chat Post ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Chat message data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.Request'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.ChatMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+      summary: Add a Message to an AI Chat Post
+      tags:
+      - AIChat
   /api/login:
     post:
       consumes:
@@ -123,15 +249,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/controllers.AuthResponse'
+            $ref: '#/definitions/controllers.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/controllers.AuthResponse'
+            $ref: '#/definitions/controllers.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/controllers.AuthResponse'
+            $ref: '#/definitions/controllers.ErrorResponse'
       summary: Login user
       tags:
       - Auth
@@ -157,11 +283,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/controllers.AuthResponse'
+            $ref: '#/definitions/controllers.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/controllers.AuthResponse'
+            $ref: '#/definitions/controllers.ErrorResponse'
       summary: Register a new user
       tags:
       - Auth

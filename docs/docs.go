@@ -15,6 +15,134 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/ai-posts": {
+            "post": {
+                "description": "Create a new AI chat post with an initial prompt. The post type will be set to \"ai\".",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AIChat"
+                ],
+                "summary": "Create an AI Chat Post",
+                "parameters": [
+                    {
+                        "description": "Initial prompt from the user",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controllers.Request"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.AIChatPostResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/ai-posts/{id}": {
+            "get": {
+                "description": "Retrieve an AI chat post along with its conversation thread.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AIChat"
+                ],
+                "summary": "Get an AI Chat Post",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "AI Chat Post ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.AIChatPostResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/ai-posts/{id}/messages": {
+            "post": {
+                "description": "Append a new chat message (either a prompt or reply) to an existing AI chat post.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AIChat"
+                ],
+                "summary": "Add a Message to an AI Chat Post",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "AI Chat Post ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Chat message data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controllers.Request"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.ChatMessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/login": {
             "post": {
                 "description": "Authenticate user and return JWT token",
@@ -49,19 +177,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/controllers.AuthResponse"
+                            "$ref": "#/definitions/controllers.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/controllers.AuthResponse"
+                            "$ref": "#/definitions/controllers.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/controllers.AuthResponse"
+                            "$ref": "#/definitions/controllers.ErrorResponse"
                         }
                     }
                 }
@@ -101,13 +229,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/controllers.AuthResponse"
+                            "$ref": "#/definitions/controllers.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/controllers.AuthResponse"
+                            "$ref": "#/definitions/controllers.ErrorResponse"
                         }
                     }
                 }
@@ -115,6 +243,32 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "controllers.AIChatPostResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "messages": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/controllers.ChatMessageResponse"
+                    }
+                },
+                "post_type": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
         "controllers.AuthResponse": {
             "type": "object",
             "properties": {
@@ -126,6 +280,39 @@ const docTemplate = `{
                 },
                 "token": {
                     "description": "Token is optional",
+                    "type": "string"
+                }
+            }
+        },
+        "controllers.ChatMessageResponse": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "sender": {
+                    "type": "string"
+                }
+            }
+        },
+        "controllers.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "controllers.Request": {
+            "type": "object",
+            "properties": {
+                "content": {
                     "type": "string"
                 }
             }
@@ -208,6 +395,9 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/models.Like"
                     }
+                },
+                "post_type": {
+                    "type": "string"
                 },
                 "updated_at": {
                     "type": "string"

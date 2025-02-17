@@ -17,6 +17,10 @@ type AuthResponse struct {
 	Token   string `json:"token,omitempty"` // Token is optional
 }
 
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
+
 type RegisterInput struct {
 	Email          string `json:"email"`
 	Password       string `json:"password"`
@@ -33,8 +37,8 @@ type RegisterInput struct {
 // @Produce json
 // @Param request body models.User true "User Data"
 // @Success 201 {object} AuthResponse
-// @Failure 400 {object} AuthResponse
-// @Failure 500 {object} AuthResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
 // @Router /api/register [post]
 func Register(c *fiber.Ctx) error {
 	var input RegisterInput
@@ -93,9 +97,9 @@ type LoginInput struct {
 // @Produce json
 // @Param request body models.User true "User Credentials"
 // @Success 200 {object} AuthResponse
-// @Failure 400 {object} AuthResponse
-// @Failure 401 {object} AuthResponse
-// @Failure 500 {object} AuthResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
 // @Router /api/login [post]
 func Login(c *fiber.Ctx) error {
 	var input LoginInput
