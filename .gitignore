@@ -38,3 +38,22 @@ vendor
 /Godeps/
 /tmp
 tmp
+
+# Environment variables
+
+
+# Logs
+*.log
+*.log.*
+
+# Node modules
+node_modules/
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# System files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
