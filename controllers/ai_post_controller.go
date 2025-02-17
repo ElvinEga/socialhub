@@ -27,6 +27,10 @@ type ChatMessageResponse struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
+
 type Request struct {
 	Content string `json:"content"`
 }

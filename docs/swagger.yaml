@@ -42,100 +42,25 @@ definitions:
       error:
         type: string
     type: object
+  controllers.LoginInput:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  controllers.RegisterInput:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+    type: object
   controllers.Request:
     properties:
       content:
-        type: string
-    type: object
-  models.Comment:
-    properties:
-      content:
-        type: string
-      created_at:
-        type: string
-      id:
-        type: integer
-      post:
-        $ref: '#/definitions/models.Post'
-      post_id:
-        type: integer
-      updated_at:
-        type: string
-      user:
-        $ref: '#/definitions/models.User'
-      user_id:
-        type: integer
-    type: object
-  models.Like:
-    properties:
-      created_at:
-        type: string
-      id:
-        type: integer
-      post:
-        $ref: '#/definitions/models.Post'
-      post_id:
-        type: integer
-      user:
-        $ref: '#/definitions/models.User'
-      user_id:
-        type: integer
-    type: object
-  models.Post:
-    properties:
-      comments:
-        items:
-          $ref: '#/definitions/models.Comment'
-        type: array
-      content:
-        type: string
-      created_at:
-        type: string
-      id:
-        type: integer
-      image_url:
-        type: string
-      likes:
-        items:
-          $ref: '#/definitions/models.Like'
-        type: array
-      post_type:
-        type: string
-      updated_at:
-        type: string
-      user:
-        $ref: '#/definitions/models.User'
-      user_id:
-        type: integer
-    type: object
-  models.User:
-    properties:
-      bio:
-        type: string
-      created_at:
-        type: string
-      email:
-        type: string
-      followers:
-        description: Self-referential many-to-many for followers and following.
-        items:
-          $ref: '#/definitions/models.User'
-        type: array
-      following:
-        items:
-          $ref: '#/definitions/models.User'
-        type: array
-      id:
-        type: integer
-      name:
-        type: string
-      posts:
-        items:
-          $ref: '#/definitions/models.Post'
-        type: array
-      profile_picture:
-        type: string
-      username:
         type: string
     type: object
 info:
@@ -231,14 +156,14 @@ paths:
     post:
       consumes:
       - application/json
-      description: Authenticate user and return JWT token
+      description: Login a user with email and password
       parameters:
-      - description: User Credentials
+      - description: Login Input
         in: body
-        name: request
+        name: loginInput
         required: true
         schema:
-          $ref: '#/definitions/models.User'
+          $ref: '#/definitions/controllers.LoginInput'
       produces:
       - application/json
       responses:
@@ -249,15 +174,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/controllers.ErrorResponse'
+            $ref: '#/definitions/controllers.AuthResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/controllers.ErrorResponse'
+            $ref: '#/definitions/controllers.AuthResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/controllers.ErrorResponse'
+            $ref: '#/definitions/controllers.AuthResponse'
       summary: Login user
       tags:
       - Auth
@@ -267,12 +192,12 @@ paths:
       - application/json
       description: Create a new user account with auto-generated username
       parameters:
-      - description: User Data
+      - description: Register Input
         in: body
-        name: request
+        name: registerInput
         required: true
         schema:
-          $ref: '#/definitions/models.User'
+          $ref: '#/definitions/controllers.RegisterInput'
       produces:
       - application/json
       responses:
@@ -283,11 +208,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/controllers.ErrorResponse'
+            $ref: '#/definitions/controllers.AuthResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/controllers.ErrorResponse'
+            $ref: '#/definitions/controllers.AuthResponse'
       summary: Register a new user
       tags:
       - Auth

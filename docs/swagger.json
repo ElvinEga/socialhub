@@ -134,7 +134,7 @@
         },
         "/api/login": {
             "post": {
-                "description": "Authenticate user and return JWT token",
+                "description": "Login a user with email and password",
                 "consumes": [
                     "application/json"
                 ],
@@ -147,12 +147,12 @@
                 "summary": "Login user",
                 "parameters": [
                     {
-                        "description": "User Credentials",
-                        "name": "request",
+                        "description": "Login Input",
+                        "name": "loginInput",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.User"
+                            "$ref": "#/definitions/controllers.LoginInput"
                         }
                     }
                 ],
@@ -166,19 +166,19 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/controllers.ErrorResponse"
+                            "$ref": "#/definitions/controllers.AuthResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/controllers.ErrorResponse"
+                            "$ref": "#/definitions/controllers.AuthResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/controllers.ErrorResponse"
+                            "$ref": "#/definitions/controllers.AuthResponse"
                         }
                     }
                 }
@@ -199,12 +199,12 @@
                 "summary": "Register a new user",
                 "parameters": [
                     {
-                        "description": "User Data",
-                        "name": "request",
+                        "description": "Register Input",
+                        "name": "registerInput",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.User"
+                            "$ref": "#/definitions/controllers.RegisterInput"
                         }
                     }
                 ],
@@ -218,13 +218,13 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/controllers.ErrorResponse"
+                            "$ref": "#/definitions/controllers.AuthResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/controllers.ErrorResponse"
+                            "$ref": "#/definitions/controllers.AuthResponse"
                         }
                     }
                 }
@@ -298,148 +298,35 @@
                 }
             }
         },
-        "controllers.Request": {
+        "controllers.LoginInput": {
             "type": "object",
             "properties": {
-                "content": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.Comment": {
-            "type": "object",
-            "properties": {
-                "content": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "post": {
-                    "$ref": "#/definitions/models.Post"
-                },
-                "post_id": {
-                    "type": "integer"
-                },
-                "updated_at": {
-                    "type": "string"
-                },
-                "user": {
-                    "$ref": "#/definitions/models.User"
-                },
-                "user_id": {
-                    "type": "integer"
-                }
-            }
-        },
-        "models.Like": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "post": {
-                    "$ref": "#/definitions/models.Post"
-                },
-                "post_id": {
-                    "type": "integer"
-                },
-                "user": {
-                    "$ref": "#/definitions/models.User"
-                },
-                "user_id": {
-                    "type": "integer"
-                }
-            }
-        },
-        "models.Post": {
-            "type": "object",
-            "properties": {
-                "comments": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.Comment"
-                    }
-                },
-                "content": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "image_url": {
-                    "type": "string"
-                },
-                "likes": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.Like"
-                    }
-                },
-                "post_type": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                },
-                "user": {
-                    "$ref": "#/definitions/models.User"
-                },
-                "user_id": {
-                    "type": "integer"
-                }
-            }
-        },
-        "models.User": {
-            "type": "object",
-            "properties": {
-                "bio": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
                 "email": {
                     "type": "string"
                 },
-                "followers": {
-                    "description": "Self-referential many-to-many for followers and following.",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.User"
-                    }
-                },
-                "following": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.User"
-                    }
-                },
-                "id": {
-                    "type": "integer"
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "controllers.RegisterInput": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
                 },
                 "name": {
                     "type": "string"
                 },
-                "posts": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.Post"
-                    }
-                },
-                "profile_picture": {
+                "password": {
                     "type": "string"
-                },
-                "username": {
+                }
+            }
+        },
+        "controllers.Request": {
+            "type": "object",
+            "properties": {
+                "content": {
                     "type": "string"
                 }
             }
