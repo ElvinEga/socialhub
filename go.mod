@@ -37,6 +37,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/mattn/go-sqlite3 v1.14.12 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
+	github.com/sashabaranov/go-openai v1.37.0 // indirect
 	github.com/swaggo/files v1.0.1 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.58.0 // indirect

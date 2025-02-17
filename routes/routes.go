@@ -41,6 +41,7 @@ func Setup(app *fiber.App) {
 
 	// AI Chat Post routes.
 	api.Post("/ai-posts", controllers.CreateAIChatPost)
-	api.Post("/ai-posts/:id/messages", controllers.AddChatMessage)
+	// api.Post("/ai-posts/:id/messages", controllers.AddChatMessage)
+	api.Post("/ai-posts/:id/messages", controllers.SendAIChatMessage)
 	api.Get("/ai-posts/:id", controllers.GetAIChatPost)
 }
