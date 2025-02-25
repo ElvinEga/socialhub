@@ -600,7 +600,7 @@ const docTemplate = `{
                     "description": "User is optional",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/models.User"
+                            "$ref": "#/definitions/controllers.UserResponse"
                         }
                     ]
                 }
@@ -711,6 +711,26 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "content": {
+                    "type": "string"
+                }
+            }
+        },
+        "controllers.UserResponse": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "profile_picture": {
+                    "type": "string"
+                },
+                "username": {
                     "type": "string"
                 }
             }

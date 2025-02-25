@@ -27,7 +27,7 @@ definitions:
         type: string
       user:
         allOf:
-        - $ref: '#/definitions/models.User'
+        - $ref: '#/definitions/controllers.UserResponse'
         description: User is optional
     type: object
   controllers.ChatMessageResponse:
@@ -98,6 +98,19 @@ definitions:
   controllers.Request:
     properties:
       content:
+        type: string
+    type: object
+  controllers.UserResponse:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      profile_picture:
+        type: string
+      username:
         type: string
     type: object
   models.Comment:
