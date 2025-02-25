@@ -7,6 +7,8 @@ type Comment struct {
 	Content   string    `gorm:"type:text" json:"content"`
 	UserID    uint      `json:"user_id"`
 	User      User      `json:"user"`
+	ParentID  *uint     `json:"parent_id,omitempty"`
+	Replies   []Comment `gorm:"foreignKey:ParentID" json:"replies,omitempty"`
 	PostID    uint      `json:"post_id"`
 	Post      Post      `json:"post"`
 	CreatedAt time.Time `json:"created_at"`
