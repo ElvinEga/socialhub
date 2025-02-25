@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"socialmedia/blacklist"
 	"socialmedia/config"
 	"strings"
 
@@ -29,6 +30,11 @@ func JWTMiddleware(c *fiber.Ctx) error {
 	})
 	if err != nil || !token.Valid {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid or expired JWT"})
+	}
+
+	// Check if token is blacklisted.
+	if blacklist.IsBlacklisted(tokenStr) {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Token is blacklisted"})
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
