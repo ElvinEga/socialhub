@@ -121,10 +121,16 @@ definitions:
         type: string
       id:
         type: integer
+      parent_id:
+        type: integer
       post:
         $ref: '#/definitions/models.Post'
       post_id:
         type: integer
+      replies:
+        items:
+          $ref: '#/definitions/models.Comment'
+        type: array
       updated_at:
         type: string
       user:
@@ -331,6 +337,24 @@ paths:
       summary: Login user
       tags:
       - Auth
+  /api/logout:
+    post:
+      description: Logs out the user by adding their token to a blacklist so it cannot
+        be used further.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.AuthResponse'
+      summary: Logout user
+      tags:
+      - Auth
   /api/register:
     post:
       consumes:
@@ -361,6 +385,119 @@ paths:
       summary: Register a new user
       tags:
       - Auth
+  /comments/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Allows the comment’s author to delete it
+      parameters:
+      - description: Comment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.MessageResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/controllers.MessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.MessageResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Delete a comment
+      tags:
+      - Comments
+    put:
+      consumes:
+      - application/json
+      description: Allows the comment’s author to update it
+      parameters:
+      - description: Comment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Comment content
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.Request'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Comment'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.MessageResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/controllers.MessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.MessageResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Edit a comment
+      tags:
+      - Comments
+  /comments/{id}/replies:
+    post:
+      consumes:
+      - application/json
+      description: Allows a user to reply to an existing comment. The reply is also
+        a comment, with a ParentID linking it to the original comment.
+      parameters:
+      - description: Parent Comment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Reply content
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.Request'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Comment'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.MessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.MessageResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Add a reply to a comment
+      tags:
+      - Comments
   /posts:
     post:
       consumes:
@@ -460,6 +597,43 @@ paths:
       summary: Edit a post
       tags:
       - posts
+  /posts/{id}/comments:
+    post:
+      consumes:
+      - application/json
+      description: Allows a user to comment on a post
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Comment content
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.Request'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Comment'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.MessageResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Add a comment to a post
+      tags:
+      - Comments
   /posts/timeline:
     get:
       description: Get posts created by the authenticated user and those they follow

@@ -15,11 +15,7 @@ import (
 // @Accept json
 // @Produce json
 // @Param id path int true "Post ID"
-//
-//	@Param request body struct {
-//	    Content string `json:"content"`
-//	} true "Comment content"
-//
+// @Param request body Request true "Comment content"
 // @Success 201 {object} models.Comment
 // @Failure 400 {object} MessageResponse
 // @Failure 500 {object} MessageResponse
@@ -67,11 +63,7 @@ func AddComment(c *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param id path int true "Comment ID"
-//
-//	@Param request body struct {
-//	    Content string `json:"content"`
-//	} true "Updated comment content"
-//
+// @Param request body Request true "Comment content"
 // @Success 200 {object} models.Comment
 // @Failure 400 {object} MessageResponse
 // @Failure 403 {object} MessageResponse
@@ -164,11 +156,7 @@ func DeleteComment(c *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param id path int true "Parent Comment ID"
-//
-//	@Param request body struct {
-//	    Content string `json:"content"`
-//	} true "Reply content"
-//
+// @Param request body Request true "Reply content"
 // @Success 201 {object} models.Comment
 // @Failure 400 {object} MessageResponse
 // @Failure 404 {object} MessageResponse
