@@ -15,6 +15,7 @@ func Setup(app *fiber.App) {
 	api.Post("/login", controllers.Login)
 	api.Get("/auth/google", controllers.GoogleLogin)
 	api.Get("/auth/google/callback", controllers.GoogleCallback)
+	api.Post("/logout", controllers.Logout)
 
 	// Protected routes (require JWT authentication).
 	api.Use(middlewares.JWTMiddleware)
