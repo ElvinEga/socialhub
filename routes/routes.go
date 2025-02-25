@@ -35,6 +35,7 @@ func Setup(app *fiber.App) {
 	api.Post("/posts/:id/comments", controllers.AddComment)
 	api.Put("/comments/:id", controllers.EditComment)
 	api.Delete("/comments/:id", controllers.DeleteComment)
+	api.Post("/comments/:id/replies", controllers.AddReply)
 
 	// Like routes.
 	api.Post("/posts/:id/like", controllers.LikePost)
