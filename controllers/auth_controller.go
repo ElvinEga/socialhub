@@ -12,10 +12,18 @@ import (
 )
 
 type AuthResponse struct {
-	Status  string       `json:"status"`
-	Message string       `json:"message"`
-	Token   string       `json:"token,omitempty"` // Token is optional
-	User    *models.User `json:"user,omitempty"`  // User is optional
+	Status  string        `json:"status"`
+	Message string        `json:"message"`
+	Token   string        `json:"token,omitempty"` // Token is optional
+	User    *UserResponse `json:"user,omitempty"`  // User is optional
+}
+
+type UserResponse struct {
+	ID             uint   `json:"id"`
+	Email          string `json:"email"`
+	Name           string `json:"name"`
+	Username       string `json:"username"`
+	ProfilePicture string `json:"profile_picture"`
 }
 
 type RegisterInput struct {
@@ -150,11 +158,19 @@ func Login(c *fiber.Ctx) error {
 		})
 	}
 
+	userResponse := UserResponse{
+		ID:             user.ID,
+		Email:          user.Email,
+		Name:           user.Name,
+		Username:       user.Username,
+		ProfilePicture: user.ProfilePicture,
+	}
+
 	return c.JSON(AuthResponse{
 		Status:  "success",
 		Message: "Login successful",
 		Token:   token,
-		User:    &user,
+		User:    &userResponse,
 	})
 }
 

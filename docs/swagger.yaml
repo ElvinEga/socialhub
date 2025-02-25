@@ -25,6 +25,10 @@ definitions:
       token:
         description: Token is optional
         type: string
+      user:
+        allOf:
+        - $ref: '#/definitions/models.User'
+        description: User is optional
     type: object
   controllers.ChatMessageResponse:
     properties:

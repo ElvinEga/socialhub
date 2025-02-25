@@ -595,6 +595,14 @@ const docTemplate = `{
                 "token": {
                     "description": "Token is optional",
                     "type": "string"
+                },
+                "user": {
+                    "description": "User is optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.User"
+                        }
+                    ]
                 }
             }
         },
