@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"socialmedia/blacklist"
 	"socialmedia/config"
 	"socialmedia/models"
 	"socialmedia/utils"
@@ -223,4 +224,67 @@ func GoogleCallback(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{"token": token, "user": user})
+}
+
+// Logout godoc
+// @Summary Logout user
+// @Description Logs out the user by adding their token to a blacklist so it cannot be used further.
+// @Tags Auth
+// @Produce json
+// @Success 200 {object} AuthResponse
+// @Failure 400 {object} AuthResponse
+// @Router /api/logout [post]
+func Logout(c *fiber.Ctx) error {
+	authHeader := c.Get("Authorization")
+	if authHeader == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(AuthResponse{
+			Status:  "error",
+			Message: "Authorization header not found",
+		})
+	}
+
+	// Expect token in format "Bearer <token>"
+	const bearerPrefix = "Bearer "
+	if len(authHeader) <= len(bearerPrefix) || authHeader[:len(bearerPrefix)] != bearerPrefix {
+		return c.Status(fiber.StatusBadRequest).JSON(AuthResponse{
+			Status:  "error",
+			Message: "Invalid authorization header",
+		})
+	}
+	tokenStr := authHeader[len(bearerPrefix):]
+
+	// Parse token to extract expiration (using the same secret).
+	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+		return []byte(config.JWTSecret), nil
+	})
+	if err != nil || !token.Valid {
+		return c.Status(fiber.StatusBadRequest).JSON(AuthResponse{
+			Status:  "error",
+			Message: "Invalid token",
+		})
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return c.Status(fiber.StatusBadRequest).JSON(AuthResponse{
+			Status:  "error",
+			Message: "Invalid token claims",
+		})
+	}
+	expFloat, ok := claims["exp"].(float64)
+	if !ok {
+		return c.Status(fiber.StatusBadRequest).JSON(AuthResponse{
+			Status:  "error",
+			Message: "Invalid expiration time",
+		})
+	}
+	expirationTime := time.Unix(int64(expFloat), 0)
+
+	// Add token to blacklist.
+	blacklist.Add(tokenStr, expirationTime)
+
+	return c.JSON(AuthResponse{
+		Status:  "success",
+		Message: "Logout successful",
+	})
 }
