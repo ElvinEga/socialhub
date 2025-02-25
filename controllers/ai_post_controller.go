@@ -41,10 +41,6 @@ type Request struct {
 	Content string `json:"content"`
 }
 
-type Prompt struct {
-	Prompt string `json:"prompt"`
-}
-
 // CreateAIChatPost godoc
 // @Summary Create an AI Chat Post
 // @Description Create a new AI chat post with an initial prompt. The post type will be set to "ai".
@@ -221,7 +217,7 @@ func GetAIChatPost(c *fiber.Ctx) error {
 // @Accept json
 // @Produce text/event-stream
 // @Param id path int true "AI Chat Post ID"
-// @Param prompt body Prompt true "Prompt Message"
+// @Param request body Request true "Chat message data"
 // @Success 200 "Streamed OpenAI response"
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
