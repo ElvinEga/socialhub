@@ -3,8 +3,8 @@ package controllers
 import (
 	"bufio"
 	"context"
-	"errors"
 	"io"
+	"log"
 	"os"
 	"strconv"
 	"time"
@@ -240,13 +240,13 @@ func SendAIChatMessage(c *fiber.Ctx) error {
 
 	// Parse the request body to get the user's prompt.
 	type Request struct {
-		Prompt string `json:"prompt"`
+		Content string `json:"content"`
 	}
 	var req Request
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
-	if req.Prompt == "" {
+	if req.Content == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Prompt cannot be empty"})
 	}
 
@@ -254,7 +254,7 @@ func SendAIChatMessage(c *fiber.Ctx) error {
 	userMsg := models.ChatMessage{
 		PostID:    post.ID,
 		Sender:    "user",
-		Content:   req.Prompt,
+		Content:   req.Content,
 		CreatedAt: time.Now(),
 	}
 	if err := models.DB.Create(&userMsg).Error; err != nil {
@@ -262,30 +262,36 @@ func SendAIChatMessage(c *fiber.Ctx) error {
 	}
 
 	// Set up the OpenAI client.
-	openaiKey := os.Getenv("OPENAI_API_KEY")
-	if openaiKey == "" {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "OPENAI_API_KEY is not set"})
+	openrouterKey := os.Getenv("OPENROUTER_API_KEY")
+	if openrouterKey == "" {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "OPENROUTER_API_KEY is not set"})
 	}
-	client := openai.NewClient(openaiKey)
+
+	config := openai.DefaultConfig(openrouterKey)
+	config.BaseURL = "https://openrouter.ai/api/v1" // Override the base URL for OpenRouter
+	client := openai.NewClientWithConfig(config)
 
 	// Build the conversation context.
 	// (For a complete conversation, you might load previous messages. Here we use only the new prompt.)
 	messages := []openai.ChatCompletionMessage{
 		{
 			Role:    openai.ChatMessageRoleUser,
-			Content: req.Prompt,
+			Content: req.Content,
 		},
 	}
 
 	// Create a ChatCompletion request with streaming enabled.
 	chatReq := openai.ChatCompletionRequest{
-		Model:    openai.GPT3Dot5Turbo,
+		Model:    "mistralai/mistral-small-24b-instruct-2501:free", // Use the desired OpenRouter model
 		Messages: messages,
 		Stream:   true,
 	}
 
 	// Set header for Server-Sent Events.
 	c.Set("Content-Type", "text/event-stream")
+	c.Set("Cache-Control", "no-cache")
+	c.Set("Connection", "keep-alive")
+	c.Set("Transfer-Encoding", "chunked")
 
 	// Variable to accumulate the full AI response.
 	var fullResponse string
@@ -294,6 +300,7 @@ func SendAIChatMessage(c *fiber.Ctx) error {
 	c.Context().SetBodyStreamWriter(func(w *bufio.Writer) {
 		stream, err := client.CreateChatCompletionStream(context.Background(), chatReq)
 		if err != nil {
+			log.Printf("Error creating chat completion stream: %v", err)
 			w.WriteString("data: error: " + err.Error() + "\n\n")
 			w.Flush()
 			return
@@ -302,10 +309,27 @@ func SendAIChatMessage(c *fiber.Ctx) error {
 
 		for {
 			response, err := stream.Recv()
-			if errors.Is(err, io.EOF) {
-				break
-			}
 			if err != nil {
+				if err == io.EOF {
+					// End of stream reached normally
+					log.Printf("AI response stored successfully: %s", fullResponse)
+					if fullResponse != "" {
+						aiMsg := models.ChatMessage{
+							PostID:    post.ID,
+							Sender:    "ai",
+							Content:   fullResponse,
+							CreatedAt: time.Now(),
+						}
+						if errDb := models.DB.Create(&aiMsg).Error; errDb != nil {
+							log.Printf("Error storing AI message: %v", err)
+							// Optionally log the error; the streaming response is already complete.
+						}
+					}
+					w.WriteString("data: [DONE]\n\n")
+					w.Flush()
+					return
+				}
+				log.Printf("Error receiving stream response: %v", err)
 				w.WriteString("data: error: " + err.Error() + "\n\n")
 				w.Flush()
 				break
@@ -314,25 +338,22 @@ func SendAIChatMessage(c *fiber.Ctx) error {
 			chunk := response.Choices[0].Delta.Content
 			if chunk != "" {
 				fullResponse += chunk
-				w.WriteString("data: " + chunk + "\n\n")
+				log.Printf("Received chunk: %s", chunk)
+
+				w.WriteString("data: " + chunk + "\f\f")
 				w.Flush()
 			}
 		}
+		// log.Printf("chunk response: %s", fullResponse)
+
 	})
 
 	if err != nil {
+		log.Printf("Error during streaming: %v", err)
 		return err
 	}
-
-	// After streaming is complete, save the AI's complete reply as a ChatMessage.
-	aiMsg := models.ChatMessage{
-		PostID:    post.ID,
-		Sender:    "ai",
-		Content:   fullResponse,
-		CreatedAt: time.Now(),
-	}
-	if err := models.DB.Create(&aiMsg).Error; err != nil {
-		// Optionally log the error; the streaming response is already complete.
+	if fullResponse != "" {
+		log.Printf("Full AI response: %s", fullResponse)
 	}
 
 	return nil
