@@ -3,6 +3,7 @@ package controllers
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"io"
 	"log"
 	"os"
@@ -20,6 +21,7 @@ type AIChatPostResponse struct {
 	ID        uint                  `json:"id"`
 	UserID    uint                  `json:"user_id"`
 	PostType  string                `json:"post_type"`
+	Content   string                `json:"content"`
 	CreatedAt time.Time             `json:"created_at"`
 	UpdatedAt time.Time             `json:"updated_at"`
 	Messages  []ChatMessageResponse `json:"messages"`
@@ -69,7 +71,7 @@ func CreateAIChatPost(c *fiber.Ctx) error {
 
 	// Create a new Post with PostType "ai"
 	post := models.Post{
-		Content:   "", // Not used for AI chat posts; conversation is in ChatMessage
+		Content:   body.Content,
 		UserID:    userID,
 		PostType:  "ai",
 		CreatedAt: time.Now(),
@@ -80,30 +82,24 @@ func CreateAIChatPost(c *fiber.Ctx) error {
 	}
 
 	// Create the initial chat message (the user's prompt)
-	message := models.ChatMessage{
-		PostID:    post.ID,
-		Sender:    "user",
-		Content:   body.Content,
-		CreatedAt: time.Now(),
-	}
-	if err := models.DB.Create(&message).Error; err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
-	}
+	// message := models.ChatMessage{
+	// 	PostID:    post.ID,
+	// 	Sender:    "user",
+	// 	Content:   body.Content,
+	// 	CreatedAt: time.Now(),
+	// }
+	// if err := models.DB.Create(&message).Error; err != nil {
+	// 	return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	// }
 
 	response := AIChatPostResponse{
 		ID:        post.ID,
 		UserID:    post.UserID,
 		PostType:  post.PostType,
+		Content:   post.Content,
 		CreatedAt: post.CreatedAt,
 		UpdatedAt: post.UpdatedAt,
-		Messages: []ChatMessageResponse{
-			{
-				ID:        message.ID,
-				Sender:    message.Sender,
-				Content:   message.Content,
-				CreatedAt: message.CreatedAt,
-			},
-		},
+		Messages:  []ChatMessageResponse{},
 	}
 	return c.Status(fiber.StatusCreated).JSON(response)
 }
@@ -203,6 +199,7 @@ func GetAIChatPost(c *fiber.Ctx) error {
 		ID:        post.ID,
 		UserID:    post.UserID,
 		PostType:  post.PostType,
+		Content:   post.Content,
 		CreatedAt: post.CreatedAt,
 		UpdatedAt: post.UpdatedAt,
 		Messages:  chatMessages,
@@ -250,6 +247,11 @@ func SendAIChatMessage(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Prompt cannot be empty"})
 	}
 
+	var messageCount int64
+	if err := models.DB.Model(&models.ChatMessage{}).Where("post_id = ?", post.ID).Count(&messageCount).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to count messages: " + err.Error()})
+	}
+
 	// Save the user's message as a ChatMessage.
 	userMsg := models.ChatMessage{
 		PostID:    post.ID,
@@ -282,7 +284,7 @@ func SendAIChatMessage(c *fiber.Ctx) error {
 
 	// Create a ChatCompletion request with streaming enabled.
 	chatReq := openai.ChatCompletionRequest{
-		Model:    "mistralai/mistral-small-24b-instruct-2501:free", // Use the desired OpenRouter model
+		Model:    "mistralai/mistral-small-3.1-24b-instruct:free", // Use the desired OpenRouter model
 		Messages: messages,
 		Stream:   true,
 	}
@@ -335,12 +337,21 @@ func SendAIChatMessage(c *fiber.Ctx) error {
 				break
 			}
 			// Get the delta text from the response.
+
+			jsonData, err := json.Marshal(map[string]interface{}{
+				"choices": response.Choices,
+			})
+			if err != nil {
+				log.Println("Error marshalling JSON:", err)
+				return
+			}
+			chunkApi := string(jsonData)
 			chunk := response.Choices[0].Delta.Content
 			if chunk != "" {
 				fullResponse += chunk
 				log.Printf("Received chunk: %s", chunk)
 
-				w.WriteString("data: " + chunk + "\f\f")
+				w.WriteString("data: " + chunkApi + "\n\n")
 				w.Flush()
 			}
 		}
