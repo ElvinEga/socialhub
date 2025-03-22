@@ -12,8 +12,8 @@ import (
 
 	"socialmedia/models"
 
+	openai "github.com/ElvinEga/go-openai"
 	"github.com/gofiber/fiber/v2"
-	openai "github.com/sashabaranov/go-openai"
 )
 
 // AIChatPostResponse defines the response structure for an AI chat post.
@@ -30,8 +30,10 @@ type AIChatPostResponse struct {
 // ChatMessageResponse defines the response structure for a chat message.
 type ChatMessageResponse struct {
 	ID        uint      `json:"id"`
+	PostID    uint      `json:"post_id"`
 	Sender    string    `json:"sender"`
 	Content   string    `json:"content"`
+	Reason    string    `json:"reason"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -189,8 +191,10 @@ func GetAIChatPost(c *fiber.Ctx) error {
 	for i, m := range messages {
 		chatMessages[i] = ChatMessageResponse{
 			ID:        m.ID,
+			PostID:    m.PostID,
 			Sender:    m.Sender,
 			Content:   m.Content,
+			Reason:    m.Reason,
 			CreatedAt: m.CreatedAt,
 		}
 	}
@@ -284,7 +288,7 @@ func SendAIChatMessage(c *fiber.Ctx) error {
 
 	// Create a ChatCompletion request with streaming enabled.
 	chatReq := openai.ChatCompletionRequest{
-		Model:    "mistralai/mistral-small-3.1-24b-instruct:free", // Use the desired OpenRouter model
+		Model:    "qwen/qwq-32b:free", // Use the desired OpenRouter model
 		Messages: messages,
 		Stream:   true,
 	}
@@ -297,6 +301,7 @@ func SendAIChatMessage(c *fiber.Ctx) error {
 
 	// Variable to accumulate the full AI response.
 	var fullResponse string
+	var reasonResponse string
 
 	// Stream the OpenAI response to the client.
 	c.Context().SetBodyStreamWriter(func(w *bufio.Writer) {
@@ -320,6 +325,7 @@ func SendAIChatMessage(c *fiber.Ctx) error {
 							PostID:    post.ID,
 							Sender:    "ai",
 							Content:   fullResponse,
+							Reason:    reasonResponse,
 							CreatedAt: time.Now(),
 						}
 						if errDb := models.DB.Create(&aiMsg).Error; errDb != nil {
@@ -346,7 +352,15 @@ func SendAIChatMessage(c *fiber.Ctx) error {
 				return
 			}
 			chunkApi := string(jsonData)
+			chunkReason := response.Choices[0].Delta.Reasoning
 			chunk := response.Choices[0].Delta.Content
+			if chunkReason != "" {
+				reasonResponse += chunkReason
+				log.Printf("Received Reasoning chunk: %s", chunkReason)
+
+				w.WriteString("data: " + chunkApi + "\n\n")
+				w.Flush()
+			}
 			if chunk != "" {
 				fullResponse += chunk
 				log.Printf("Received chunk: %s", chunk)
