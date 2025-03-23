@@ -26,6 +26,7 @@ func Setup(app *fiber.App) {
 	api.Post("/unfollow/:id", controllers.UnfollowUser)
 
 	// Post routes.
+	api.Get("/posts", controllers.PostList)
 	api.Post("/posts", controllers.CreatePost)
 	api.Put("/posts/:id", controllers.EditPost)
 	api.Delete("/posts/:id", controllers.DeletePost)

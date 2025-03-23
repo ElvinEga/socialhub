@@ -158,3 +158,62 @@ func Timeline(c *fiber.Ctx) error {
 
 	return c.JSON(posts)
 }
+
+// PostList returns all posts with optional pagination.
+// @Summary List all posts
+// @Description Get a list of all posts with optional pagination
+// @Tags posts
+// @Produce json
+// @Param page query int false "Page number (default: 1)"
+// @Param limit query int false "Posts per page (default: 10)"
+// @Success 200 {array} models.Post
+// @Failure 400 {object} ErrorResponse
+// @Router /posts [get]
+func PostList(c *fiber.Ctx) error {
+	// Get page and limit from query parameters
+	page, err := strconv.Atoi(c.Query("page", "1"))
+	if err != nil || page < 1 {
+		page = 1
+	}
+
+	limit, err := strconv.Atoi(c.Query("limit", "10"))
+	if err != nil || limit < 1 {
+		limit = 10
+	}
+
+	// Calculate offset
+	offset := (page - 1) * limit
+
+	var posts []models.Post
+	var total int64
+
+	// Get total count of posts
+	if err := models.DB.Model(&models.Post{}).Count(&total).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to count posts",
+		})
+	}
+
+	// Get posts with pagination
+	if err := models.DB.
+		Preload("User"). // Include user information
+		Order("created_at desc").
+		Limit(limit).
+		Offset(offset).
+		Find(&posts).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to fetch posts",
+		})
+	}
+
+	// Return response with pagination metadata
+	return c.JSON(fiber.Map{
+		"posts": posts,
+		"metadata": fiber.Map{
+			"total":       total,
+			"page":        page,
+			"limit":       limit,
+			"total_pages": (total + int64(limit) - 1) / int64(limit),
+		},
+	})
+}
