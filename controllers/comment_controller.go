@@ -215,3 +215,84 @@ func AddReply(c *fiber.Ctx) error {
 
 	return c.Status(fiber.StatusCreated).JSON(reply)
 }
+
+// GetCommentsByPostID godoc
+// @Summary Get comments for a specific post
+// @Description Get paginated comments for a post, including replies
+// @Tags Comments
+// @Accept json
+// @Produce json
+// @Param id path int true "Post ID"
+// @Param page query int false "Page number (default: 1)"
+// @Param limit query int false "Comments per page (default: 10)"
+// @Success 200 {object} CommentResponse
+// @Failure 400 {object} MessageResponse
+// @Failure 404 {object} MessageResponse
+// @Router /posts/{id}/comments [get]
+func GetCommentsByPostID(c *fiber.Ctx) error {
+	// Get post ID from URL parameters
+	postID, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(MessageResponse{
+			Message: "Invalid post ID",
+		})
+	}
+
+	// Get pagination parameters
+	page, err := strconv.Atoi(c.Query("page", "1"))
+	if err != nil || page < 1 {
+		page = 1
+	}
+
+	limit, err := strconv.Atoi(c.Query("limit", "10"))
+	if err != nil || limit < 1 {
+		limit = 10
+	}
+
+	offset := (page - 1) * limit
+
+	// Check if post exists
+	var post models.Post
+	if err := models.DB.First(&post, postID).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(MessageResponse{
+			Message: "Post not found",
+		})
+	}
+
+	var comments []models.Comment
+	var total int64
+
+	// Get total count of parent comments (comments without ParentID)
+	if err := models.DB.Model(&models.Comment{}).
+		Where("post_id = ? AND parent_id IS NULL", postID).
+		Count(&total).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(MessageResponse{
+			Message: "Failed to count comments",
+		})
+	}
+
+	// Get paginated parent comments with their replies and user information
+	if err := models.DB.
+		Preload("User").         // Load comment author
+		Preload("Replies").      // Load replies
+		Preload("Replies.User"). // Load reply authors
+		Where("post_id = ? AND parent_id IS NULL", postID).
+		Order("created_at desc").
+		Limit(limit).
+		Offset(offset).
+		Find(&comments).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(MessageResponse{
+			Message: "Failed to fetch comments",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"comments": comments,
+		"metadata": fiber.Map{
+			"total":       total,
+			"page":        page,
+			"limit":       limit,
+			"total_pages": (total + int64(limit) - 1) / int64(limit),
+		},
+	})
+}
