@@ -10,9 +10,9 @@ type Post struct {
 	User       User      `json:"user" gorm:"foreignKey:UserID"`
 	Likes      []Like    `json:"likes"`
 	Comments   []Comment `json:"comments"`
-	LikeCount  int64     `json:"likes" gorm:"default:0"`
-	ShareCount int64     `json:"shares" gorm:"default:0"`
-	ViewCount  int64     `json:"views" gorm:"default:0"`
+	LikeCount  int64     `json:"likes_count" gorm:"default:0"`
+	ShareCount int64     `json:"shares_count" gorm:"default:0"`
+	ViewCount  int64     `json:"views_count" gorm:"default:0"`
 	ILiked     bool      `json:"i_liked" gorm:"-"`
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
