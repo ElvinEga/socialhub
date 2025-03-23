@@ -6,11 +6,12 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 )
 
 type PostInput struct {
-	Content  string `json:"content"`
-	ImageURL string `json:"image_url"`
+	Content   string   `json:"content"`
+	ImageUrls []string `json:"image_urls,omitempty"`
 }
 
 type MessageResponse struct {
@@ -31,26 +32,29 @@ type MessageResponse struct {
 func CreatePost(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(uint)
 
-	type PostInput struct {
-		Content  string `json:"content"`
-		ImageURL string `json:"image_url"`
-	}
-
 	var input PostInput
 	if err := c.BodyParser(&input); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	post := models.Post{
-		Content:   input.Content,
-		ImageURL:  input.ImageURL,
-		UserID:    userID,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		Content:    input.Content,
+		ImageUrls:  input.ImageUrls,
+		UserID:     userID,
+		LikeCount:  0,
+		ShareCount: 0,
+		ViewCount:  0,
+		CreatedAt:  time.Now(),
+		UpdatedAt:  time.Now(),
 	}
 
 	if err := models.DB.Create(&post).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	// Reload the post with relationships
+	if err := models.DB.Preload("User").Preload("Likes").Preload("Comments").First(&post, post.ID).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to load post relationships"})
 	}
 
 	return c.JSON(post)
@@ -85,19 +89,32 @@ func EditPost(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Not authorized"})
 	}
 
-	var input struct {
-		Content  string `json:"content"`
-		ImageURL string `json:"image_url"`
-	}
+	var input PostInput
 	if err := c.BodyParser(&input); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	post.Content = input.Content
-	post.ImageURL = input.ImageURL
+	post.ImageUrls = input.ImageUrls
 	post.UpdatedAt = time.Now()
 
-	models.DB.Save(&post)
+	if err := models.DB.Save(&post).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update post"})
+	}
+
+	// Reload the post with relationships
+	if err := models.DB.Preload("User").Preload("Likes").Preload("Comments").First(&post, post.ID).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to load post relationships"})
+	}
+
+	// Check if current user liked the post
+	for _, like := range post.Likes {
+		if like.UserID == userID {
+			post.ILiked = true
+			break
+		}
+	}
+
 	return c.JSON(post)
 }
 
@@ -170,7 +187,7 @@ func Timeline(c *fiber.Ctx) error {
 // @Failure 400 {object} ErrorResponse
 // @Router /posts [get]
 func PostList(c *fiber.Ctx) error {
-	// Get page and limit from query parameters
+	userID := c.Locals("user_id").(uint)
 	page, err := strconv.Atoi(c.Query("page", "1"))
 	if err != nil || page < 1 {
 		page = 1
@@ -181,22 +198,22 @@ func PostList(c *fiber.Ctx) error {
 		limit = 10
 	}
 
-	// Calculate offset
 	offset := (page - 1) * limit
 
 	var posts []models.Post
 	var total int64
 
-	// Get total count of posts
 	if err := models.DB.Model(&models.Post{}).Count(&total).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to count posts",
 		})
 	}
 
-	// Get posts with pagination
+	// Get posts with all relationships
 	if err := models.DB.
-		Preload("User"). // Include user information
+		Preload("User").
+		Preload("Likes").
+		Preload("Comments").
 		Order("created_at desc").
 		Limit(limit).
 		Offset(offset).
@@ -206,7 +223,16 @@ func PostList(c *fiber.Ctx) error {
 		})
 	}
 
-	// Return response with pagination metadata
+	// Check if current user liked each post
+	for i := range posts {
+		for _, like := range posts[i].Likes {
+			if like.UserID == userID {
+				posts[i].ILiked = true
+				break
+			}
+		}
+	}
+
 	return c.JSON(fiber.Map{
 		"posts": posts,
 		"metadata": fiber.Map{
@@ -216,4 +242,19 @@ func PostList(c *fiber.Ctx) error {
 			"total_pages": (total + int64(limit) - 1) / int64(limit),
 		},
 	})
+}
+
+func IncrementViewCount(postID uint) error {
+	return models.DB.Model(&models.Post{}).
+		Where("id = ?", postID).
+		UpdateColumn("view_count", gorm.Expr("view_count + ?", 1)).
+		Error
+}
+
+// Add a function to increment share count
+func IncrementShareCount(postID uint) error {
+	return models.DB.Model(&models.Post{}).
+		Where("id = ?", postID).
+		UpdateColumn("share_count", gorm.Expr("share_count + ?", 1)).
+		Error
 }

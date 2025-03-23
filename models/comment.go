@@ -10,7 +10,6 @@ type Comment struct {
 	ParentID  *uint     `json:"parent_id,omitempty"`
 	Replies   []Comment `gorm:"foreignKey:ParentID" json:"replies,omitempty"`
 	PostID    uint      `json:"post_id"`
-	Post      Post      `json:"post"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
