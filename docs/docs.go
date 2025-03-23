@@ -446,6 +446,47 @@ const docTemplate = `{
             }
         },
         "/posts": {
+            "get": {
+                "description": "Get a list of all posts with optional pagination",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "posts"
+                ],
+                "summary": "List all posts",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Posts per page (default: 10)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Post"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.ErrorResponse"
+                        }
+                    }
+                }
+            },
             "post": {
                 "description": "Create a new post with content and optional image URL",
                 "consumes": [
@@ -819,6 +860,9 @@ const docTemplate = `{
         "controllers.AIChatPostResponse": {
             "type": "object",
             "properties": {
+                "content": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -876,6 +920,12 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "integer"
+                },
+                "post_id": {
+                    "type": "integer"
+                },
+                "reason": {
+                    "type": "string"
                 },
                 "sender": {
                     "type": "string"

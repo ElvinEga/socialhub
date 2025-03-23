@@ -1,6 +1,8 @@
 definitions:
   controllers.AIChatPostResponse:
     properties:
+      content:
+        type: string
       created_at:
         type: string
       id:
@@ -38,6 +40,10 @@ definitions:
         type: string
       id:
         type: integer
+      post_id:
+        type: integer
+      reason:
+        type: string
       sender:
         type: string
     type: object
@@ -499,6 +505,33 @@ paths:
       tags:
       - Comments
   /posts:
+    get:
+      description: Get a list of all posts with optional pagination
+      parameters:
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Posts per page (default: 10)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Post'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+      summary: List all posts
+      tags:
+      - posts
     post:
       consumes:
       - application/json
