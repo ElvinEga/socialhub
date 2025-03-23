@@ -296,3 +296,58 @@ func GetCommentsByPostID(c *fiber.Ctx) error {
 		},
 	})
 }
+
+// GetCommentByID godoc
+// @Summary Get a single comment by ID
+// @Description Get a comment with its replies and user information
+// @Tags Comments
+// @Accept json
+// @Produce json
+// @Param id path int true "Comment ID"
+// @Success 200 {object} models.Comment
+// @Failure 400 {object} MessageResponse
+// @Failure 404 {object} MessageResponse
+// @Router /comments/{id} [get]
+func GetCommentByID(c *fiber.Ctx) error {
+	// Get comment ID from URL parameters
+	commentID, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(MessageResponse{
+			Message: "Invalid comment ID",
+		})
+	}
+
+	var comment models.Comment
+
+	// Get the comment with all related data
+	if err := models.DB.
+		Preload("User").         // Load comment author
+		Preload("Replies").      // Load replies
+		Preload("Replies.User"). // Load reply authors
+		First(&comment, commentID).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(MessageResponse{
+			Message: "Comment not found",
+		})
+	}
+
+	// If this is a reply (has ParentID), get the parent comment
+	if comment.ParentID != nil {
+		var parentComment models.Comment
+		if err := models.DB.
+			Preload("User").
+			First(&parentComment, comment.ParentID).Error; err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(MessageResponse{
+				Message: "Failed to fetch parent comment",
+			})
+		}
+
+		return c.JSON(fiber.Map{
+			"comment":        comment,
+			"parent_comment": parentComment,
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"comment": comment,
+	})
+}

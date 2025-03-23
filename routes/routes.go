@@ -33,6 +33,8 @@ func Setup(app *fiber.App) {
 	api.Get("/timeline", controllers.Timeline)
 
 	// Comment routes.
+	api.Get("/posts/:id/comments", controllers.GetCommentsByPostID)
+	api.Get("/comments/:id", controllers.GetCommentByID)
 	api.Post("/posts/:id/comments", controllers.AddComment)
 	api.Put("/comments/:id", controllers.EditComment)
 	api.Delete("/comments/:id", controllers.DeleteComment)
