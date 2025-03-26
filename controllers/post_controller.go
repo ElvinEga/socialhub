@@ -18,6 +18,12 @@ type MessageResponse struct {
 	Message string `json:"message"`
 }
 
+// PostListResponse represents the response structure for the post list
+type PostListResponse struct {
+	Posts    []models.Post      `json:"posts"`
+	Metadata PaginationMetadata `json:"metadata"`
+}
+
 // CreatePost allows an authenticated user to create a new post.
 // @Summary Create a new post
 // @Description Create a new post with content and optional image URL
@@ -183,8 +189,9 @@ func Timeline(c *fiber.Ctx) error {
 // @Produce json
 // @Param page query int false "Page number (default: 1)"
 // @Param limit query int false "Posts per page (default: 10)"
-// @Success 200 {array} models.Post
+// @Success 200 {object} PostListResponse
 // @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
 // @Router /posts [get]
 func PostList(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(uint)

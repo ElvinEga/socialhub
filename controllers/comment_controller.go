@@ -6,7 +6,28 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 )
+
+// CommentResponse represents the response structure for comments
+type CommentResponse struct {
+	Comments []models.Comment   `json:"comments"`
+	Metadata PaginationMetadata `json:"metadata"`
+}
+
+// PaginationMetadata represents pagination information
+type PaginationMetadata struct {
+	Total      int64 `json:"total"`
+	Page       int   `json:"page"`
+	Limit      int   `json:"limit"`
+	TotalPages int64 `json:"total_pages"`
+}
+
+// SingleCommentResponse represents the response for a single comment
+type SingleCommentResponse struct {
+	Comment       models.Comment  `json:"comment"`
+	ParentComment *models.Comment `json:"parent_comment,omitempty"`
+}
 
 // AddComment godoc
 // @Summary Add a comment to a post
@@ -39,6 +60,9 @@ func AddComment(c *fiber.Ctx) error {
 		})
 	}
 
+	// Start a transaction
+	tx := models.DB.Begin()
+
 	comment := models.Comment{
 		Content:   input.Content,
 		UserID:    userID,
@@ -47,9 +71,29 @@ func AddComment(c *fiber.Ctx) error {
 		UpdatedAt: time.Now(),
 	}
 
-	if err := models.DB.Create(&comment).Error; err != nil {
+	// Create the comment
+	if err := tx.Create(&comment).Error; err != nil {
+		tx.Rollback()
 		return c.Status(fiber.StatusInternalServerError).JSON(MessageResponse{
 			Message: err.Error(),
+		})
+	}
+
+	// Increment the comment count in the post table
+	if err := tx.Model(&models.Post{}).
+		Where("id = ?", postID).
+		UpdateColumn("comment_count", gorm.Expr("comment_count + ?", 1)).
+		Error; err != nil {
+		tx.Rollback()
+		return c.Status(fiber.StatusInternalServerError).JSON(MessageResponse{
+			Message: "Failed to update comment count",
+		})
+	}
+
+	// Commit the transaction
+	if err := tx.Commit().Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(MessageResponse{
+			Message: "Failed to commit transaction",
 		})
 	}
 
@@ -143,7 +187,70 @@ func DeleteComment(c *fiber.Ctx) error {
 		})
 	}
 
-	models.DB.Delete(&comment)
+	// Start a transaction
+	tx := models.DB.Begin()
+
+	// Delete the comment
+	if err := tx.Delete(&comment).Error; err != nil {
+		tx.Rollback()
+		return c.Status(fiber.StatusInternalServerError).JSON(MessageResponse{
+			Message: "Failed to delete comment",
+		})
+	}
+
+	// Decrement the comment count in the post table
+	if err := tx.Model(&models.Post{}).
+		Where("id = ?", comment.PostID).
+		UpdateColumn("comment_count", gorm.Expr("GREATEST(comment_count - ?, 0)", 1)).
+		Error; err != nil {
+		tx.Rollback()
+		return c.Status(fiber.StatusInternalServerError).JSON(MessageResponse{
+			Message: "Failed to update comment count",
+		})
+	}
+
+	// If this was a parent comment, also delete all replies
+	if comment.ParentID == nil {
+		// Delete all replies and update the comment count accordingly
+		var replyCount int64
+		if err := tx.Model(&models.Comment{}).
+			Where("parent_id = ?", comment.ID).
+			Count(&replyCount).Error; err != nil {
+			tx.Rollback()
+			return c.Status(fiber.StatusInternalServerError).JSON(MessageResponse{
+				Message: "Failed to count replies",
+			})
+		}
+
+		if replyCount > 0 {
+			// Delete all replies
+			if err := tx.Where("parent_id = ?", comment.ID).Delete(&models.Comment{}).Error; err != nil {
+				tx.Rollback()
+				return c.Status(fiber.StatusInternalServerError).JSON(MessageResponse{
+					Message: "Failed to delete replies",
+				})
+			}
+
+			// Decrease the comment count by the number of replies
+			if err := tx.Model(&models.Post{}).
+				Where("id = ?", comment.PostID).
+				UpdateColumn("comment_count", gorm.Expr("GREATEST(comment_count - ?, 0)", replyCount)).
+				Error; err != nil {
+				tx.Rollback()
+				return c.Status(fiber.StatusInternalServerError).JSON(MessageResponse{
+					Message: "Failed to update comment count for replies",
+				})
+			}
+		}
+	}
+
+	// Commit the transaction
+	if err := tx.Commit().Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(MessageResponse{
+			Message: "Failed to commit transaction",
+		})
+	}
+
 	return c.JSON(MessageResponse{
 		Message: "Comment deleted",
 	})
@@ -304,7 +411,7 @@ func GetCommentsByPostID(c *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param id path int true "Comment ID"
-// @Success 200 {object} models.Comment
+// @Success 200 {object} SingleCommentResponse
 // @Failure 400 {object} MessageResponse
 // @Failure 404 {object} MessageResponse
 // @Router /comments/{id} [get]

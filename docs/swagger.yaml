@@ -47,9 +47,27 @@ definitions:
       sender:
         type: string
     type: object
+  controllers.CommentResponse:
+    properties:
+      comments:
+        items:
+          $ref: '#/definitions/models.Comment'
+        type: array
+      metadata:
+        $ref: '#/definitions/controllers.PaginationMetadata'
+    type: object
   controllers.ErrorResponse:
     properties:
       error:
+        type: string
+    type: object
+  controllers.LikeResponse:
+    properties:
+      likes_count:
+        example: 42
+        type: integer
+      message:
+        example: Post liked successfully
         type: string
     type: object
   controllers.LoginInput:
@@ -64,12 +82,34 @@ definitions:
       message:
         type: string
     type: object
+  controllers.PaginationMetadata:
+    properties:
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+      total_pages:
+        type: integer
+    type: object
   controllers.PostInput:
     properties:
       content:
         type: string
-      image_url:
-        type: string
+      image_urls:
+        items:
+          type: string
+        type: array
+    type: object
+  controllers.PostListResponse:
+    properties:
+      metadata:
+        $ref: '#/definitions/controllers.PaginationMetadata'
+      posts:
+        items:
+          $ref: '#/definitions/models.Post'
+        type: array
     type: object
   controllers.ProfileResponse:
     properties:
@@ -106,6 +146,13 @@ definitions:
       content:
         type: string
     type: object
+  controllers.SingleCommentResponse:
+    properties:
+      comment:
+        $ref: '#/definitions/models.Comment'
+      parent_comment:
+        $ref: '#/definitions/models.Comment'
+    type: object
   controllers.UserResponse:
     properties:
       email:
@@ -129,8 +176,6 @@ definitions:
         type: integer
       parent_id:
         type: integer
-      post:
-        $ref: '#/definitions/models.Post'
       post_id:
         type: integer
       replies:
@@ -150,8 +195,6 @@ definitions:
         type: string
       id:
         type: integer
-      post:
-        $ref: '#/definitions/models.Post'
       post_id:
         type: integer
       user:
@@ -165,25 +208,37 @@ definitions:
         items:
           $ref: '#/definitions/models.Comment'
         type: array
+      comments_count:
+        type: integer
       content:
         type: string
       created_at:
         type: string
+      i_liked:
+        type: boolean
       id:
         type: integer
-      image_url:
-        type: string
+      image_urls:
+        items:
+          type: string
+        type: array
       likes:
         items:
           $ref: '#/definitions/models.Like'
         type: array
+      likes_count:
+        type: integer
       post_type:
         type: string
+      shares_count:
+        type: integer
       updated_at:
         type: string
       user:
         $ref: '#/definitions/models.User'
       user_id:
+        type: integer
+      views_count:
         type: integer
     type: object
   models.User:
@@ -426,6 +481,34 @@ paths:
       summary: Delete a comment
       tags:
       - Comments
+    get:
+      consumes:
+      - application/json
+      description: Get a comment with its replies and user information
+      parameters:
+      - description: Comment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.SingleCommentResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.MessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.MessageResponse'
+      summary: Get a single comment by ID
+      tags:
+      - Comments
     put:
       consumes:
       - application/json
@@ -522,11 +605,13 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/models.Post'
-            type: array
+            $ref: '#/definitions/controllers.PostListResponse'
         "400":
           description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
           schema:
             $ref: '#/definitions/controllers.ErrorResponse'
       summary: List all posts
@@ -631,6 +716,42 @@ paths:
       tags:
       - posts
   /posts/{id}/comments:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated comments for a post, including replies
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Comments per page (default: 10)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.CommentResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.MessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.MessageResponse'
+      summary: Get comments for a specific post
+      tags:
+      - Comments
     post:
       consumes:
       - application/json
@@ -667,6 +788,75 @@ paths:
       summary: Add a comment to a post
       tags:
       - Comments
+  /posts/{id}/like:
+    delete:
+      consumes:
+      - application/json
+      description: Remove a like from a post by the authenticated user
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully unliked the post
+          schema:
+            $ref: '#/definitions/controllers.LikeResponse'
+        "400":
+          description: Invalid post ID or Like not found
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "404":
+          description: Post not found
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Unlike a post
+      tags:
+      - likes
+    post:
+      consumes:
+      - application/json
+      description: Add a like to a post by the authenticated user
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully liked the post
+          schema:
+            $ref: '#/definitions/controllers.LikeResponse'
+        "400":
+          description: Invalid post ID or Already liked
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "404":
+          description: Post not found
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Like a post
+      tags:
+      - likes
   /posts/timeline:
     get:
       description: Get posts created by the authenticated user and those they follow

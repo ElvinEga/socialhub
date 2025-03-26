@@ -271,6 +271,48 @@ const docTemplate = `{
             }
         },
         "/comments/{id}": {
+            "get": {
+                "description": "Get a comment with its replies and user information",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Comments"
+                ],
+                "summary": "Get a single comment by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Comment ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.SingleCommentResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.MessageResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.MessageResponse"
+                        }
+                    }
+                }
+            },
             "put": {
                 "security": [
                     {
@@ -473,14 +515,17 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.Post"
-                            }
+                            "$ref": "#/definitions/controllers.PostListResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/controllers.ErrorResponse"
                         }
@@ -666,6 +711,60 @@ const docTemplate = `{
             }
         },
         "/posts/{id}/comments": {
+            "get": {
+                "description": "Get paginated comments for a post, including replies",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Comments"
+                ],
+                "summary": "Get comments for a specific post",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Post ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Comments per page (default: 10)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.CommentResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.MessageResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.MessageResponse"
+                        }
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {
@@ -718,6 +817,114 @@ const docTemplate = `{
                         "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/controllers.MessageResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/posts/{id}/like": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Add a like to a post by the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "likes"
+                ],
+                "summary": "Like a post",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Post ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully liked the post",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.LikeResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid post ID or Already liked",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Post not found",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Remove a like from a post by the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "likes"
+                ],
+                "summary": "Unlike a post",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Post ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully unliked the post",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.LikeResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid post ID or Like not found",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Post not found",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.ErrorResponse"
                         }
                     }
                 }
@@ -932,11 +1139,38 @@ const docTemplate = `{
                 }
             }
         },
+        "controllers.CommentResponse": {
+            "type": "object",
+            "properties": {
+                "comments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Comment"
+                    }
+                },
+                "metadata": {
+                    "$ref": "#/definitions/controllers.PaginationMetadata"
+                }
+            }
+        },
         "controllers.ErrorResponse": {
             "type": "object",
             "properties": {
                 "error": {
                     "type": "string"
+                }
+            }
+        },
+        "controllers.LikeResponse": {
+            "type": "object",
+            "properties": {
+                "likes_count": {
+                    "type": "integer",
+                    "example": 42
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Post liked successfully"
                 }
             }
         },
@@ -959,14 +1193,48 @@ const docTemplate = `{
                 }
             }
         },
+        "controllers.PaginationMetadata": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "total_pages": {
+                    "type": "integer"
+                }
+            }
+        },
         "controllers.PostInput": {
             "type": "object",
             "properties": {
                 "content": {
                     "type": "string"
                 },
-                "image_url": {
-                    "type": "string"
+                "image_urls": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "controllers.PostListResponse": {
+            "type": "object",
+            "properties": {
+                "metadata": {
+                    "$ref": "#/definitions/controllers.PaginationMetadata"
+                },
+                "posts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Post"
+                    }
                 }
             }
         },
@@ -1024,6 +1292,17 @@ const docTemplate = `{
                 }
             }
         },
+        "controllers.SingleCommentResponse": {
+            "type": "object",
+            "properties": {
+                "comment": {
+                    "$ref": "#/definitions/models.Comment"
+                },
+                "parent_comment": {
+                    "$ref": "#/definitions/models.Comment"
+                }
+            }
+        },
         "controllers.UserResponse": {
             "type": "object",
             "properties": {
@@ -1059,9 +1338,6 @@ const docTemplate = `{
                 "parent_id": {
                     "type": "integer"
                 },
-                "post": {
-                    "$ref": "#/definitions/models.Post"
-                },
                 "post_id": {
                     "type": "integer"
                 },
@@ -1091,9 +1367,6 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
-                "post": {
-                    "$ref": "#/definitions/models.Post"
-                },
                 "post_id": {
                     "type": "integer"
                 },
@@ -1114,17 +1387,26 @@ const docTemplate = `{
                         "$ref": "#/definitions/models.Comment"
                     }
                 },
+                "comments_count": {
+                    "type": "integer"
+                },
                 "content": {
                     "type": "string"
                 },
                 "created_at": {
                     "type": "string"
                 },
+                "i_liked": {
+                    "type": "boolean"
+                },
                 "id": {
                     "type": "integer"
                 },
-                "image_url": {
-                    "type": "string"
+                "image_urls": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "likes": {
                     "type": "array",
@@ -1132,8 +1414,14 @@ const docTemplate = `{
                         "$ref": "#/definitions/models.Like"
                     }
                 },
+                "likes_count": {
+                    "type": "integer"
+                },
                 "post_type": {
                     "type": "string"
+                },
+                "shares_count": {
+                    "type": "integer"
                 },
                 "updated_at": {
                     "type": "string"
@@ -1142,6 +1430,9 @@ const docTemplate = `{
                     "$ref": "#/definitions/models.User"
                 },
                 "user_id": {
+                    "type": "integer"
+                },
+                "views_count": {
                     "type": "integer"
                 }
             }
