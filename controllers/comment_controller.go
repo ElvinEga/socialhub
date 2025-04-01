@@ -64,11 +64,9 @@ func AddComment(c *fiber.Ctx) error {
 	tx := models.DB.Begin()
 
 	comment := models.Comment{
-		Content:   input.Content,
-		UserID:    userID,
-		PostID:    uint(postID),
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		Content: input.Content,
+		UserID:  userID,
+		PostID:  uint(postID),
 	}
 
 	// Create the comment
@@ -210,7 +208,7 @@ func DeleteComment(c *fiber.Ctx) error {
 	}
 
 	// If this was a parent comment, also delete all replies
-	if comment.ParentID == nil {
+	if comment.ParentCommentID == nil {
 		// Delete all replies and update the comment count accordingly
 		var replyCount int64
 		if err := tx.Model(&models.Comment{}).
@@ -307,12 +305,11 @@ func AddReply(c *fiber.Ctx) error {
 
 	// Create the reply comment.
 	reply := models.Comment{
-		Content:   req.Content,
-		UserID:    userID,
-		PostID:    parentComment.PostID, // The reply belongs to the same post.
-		ParentID:  &parentComment.ID,    // Link to the parent comment.
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		Content:         req.Content,
+		UserID:          userID,
+		PostID:          parentComment.PostID, // The reply belongs to the same post.
+		ParentCommentID: &parentComment.ID,    // Link to the parent comment.
+
 	}
 	if err := models.DB.Create(&reply).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(MessageResponse{
@@ -438,11 +435,11 @@ func GetCommentByID(c *fiber.Ctx) error {
 	}
 
 	// If this is a reply (has ParentID), get the parent comment
-	if comment.ParentID != nil {
+	if comment.ParentCommentID != nil {
 		var parentComment models.Comment
 		if err := models.DB.
 			Preload("User").
-			First(&parentComment, comment.ParentID).Error; err != nil {
+			First(&parentComment, comment.ParentCommentID).Error; err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(MessageResponse{
 				Message: "Failed to fetch parent comment",
 			})

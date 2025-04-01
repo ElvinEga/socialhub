@@ -76,12 +76,10 @@ func Register(c *fiber.Ctx) error {
 
 	// Create a new user. Bio and ProfilePicture will be empty by default.
 	user := models.User{
-		Email:     input.Email,
-		Name:      input.Name,
-		Username:  username,
-		Password:  string(hashedPassword),
-		CreatedAt: time.Now(),
-		// Bio and ProfilePicture are not set at registration.
+		Email:    input.Email,
+		Name:     input.Name,
+		Username: username,
+		Password: string(hashedPassword),
 	}
 
 	if err := models.DB.Create(&user).Error; err != nil {
@@ -213,7 +211,6 @@ func GoogleCallback(c *fiber.Ctx) error {
 			Name:           userInfo.Name,
 			Username:       username,
 			ProfilePicture: userInfo.Picture,
-			CreatedAt:      time.Now(),
 		}
 		models.DB.Create(&user)
 	}

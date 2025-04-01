@@ -73,11 +73,9 @@ func CreateAIChatPost(c *fiber.Ctx) error {
 
 	// Create a new Post with PostType "ai"
 	post := models.Post{
-		Content:   body.Content,
-		UserID:    userID,
-		PostType:  "ai",
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		Content:  body.Content,
+		UserID:   userID,
+		PostType: "ai",
 	}
 	if err := models.DB.Create(&post).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
@@ -142,10 +140,9 @@ func AddChatMessage(c *fiber.Ctx) error {
 	}
 
 	message := models.ChatMessage{
-		PostID:    uint(postID),
-		Sender:    body.Sender,
-		Content:   body.Content,
-		CreatedAt: time.Now(),
+		PostID:  uint(postID),
+		Sender:  body.Sender,
+		Content: body.Content,
 	}
 	if err := models.DB.Create(&message).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
@@ -258,10 +255,9 @@ func SendAIChatMessage(c *fiber.Ctx) error {
 
 	// Save the user's message as a ChatMessage.
 	userMsg := models.ChatMessage{
-		PostID:    post.ID,
-		Sender:    "user",
-		Content:   req.Content,
-		CreatedAt: time.Now(),
+		PostID:  post.ID,
+		Sender:  "user",
+		Content: req.Content,
 	}
 	if err := models.DB.Create(&userMsg).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to store user message: " + err.Error()})
@@ -322,11 +318,10 @@ func SendAIChatMessage(c *fiber.Ctx) error {
 					log.Printf("AI response stored successfully: %s", fullResponse)
 					if fullResponse != "" {
 						aiMsg := models.ChatMessage{
-							PostID:    post.ID,
-							Sender:    "ai",
-							Content:   fullResponse,
-							Reason:    reasonResponse,
-							CreatedAt: time.Now(),
+							PostID:  post.ID,
+							Sender:  "ai",
+							Content: fullResponse,
+							Reason:  reasonResponse,
 						}
 						if errDb := models.DB.Create(&aiMsg).Error; errDb != nil {
 							log.Printf("Error storing AI message: %v", err)
