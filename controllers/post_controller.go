@@ -44,14 +44,12 @@ func CreatePost(c *fiber.Ctx) error {
 	}
 
 	post := models.Post{
-		Content:    input.Content,
-		ImageUrls:  input.ImageUrls,
+		Content: input.Content,
+		// Media:  input.ImageUrls,
 		UserID:     userID,
 		LikeCount:  0,
 		ShareCount: 0,
 		ViewCount:  0,
-		CreatedAt:  time.Now(),
-		UpdatedAt:  time.Now(),
 	}
 
 	if err := models.DB.Create(&post).Error; err != nil {
@@ -101,7 +99,7 @@ func EditPost(c *fiber.Ctx) error {
 	}
 
 	post.Content = input.Content
-	post.ImageUrls = input.ImageUrls
+	// post.Media= input.ImageUrls
 	post.UpdatedAt = time.Now()
 
 	if err := models.DB.Save(&post).Error; err != nil {

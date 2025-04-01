@@ -86,7 +86,6 @@ func FollowUser(c *fiber.Ctx) error {
 	follow = models.Follow{
 		FollowerID:  currentUserID,
 		FollowingID: uint(targetID),
-		CreatedAt:   time.Now(),
 	}
 
 	if err := models.DB.Create(&follow).Error; err != nil {

@@ -53,7 +53,7 @@ func LikePost(c *fiber.Ctx) error {
 	// Create new like
 	like = models.Like{
 		UserID: userID,
-		PostID: uint(postID),
+		PostID: &post.ID,
 	}
 
 	// Save the like and increment the post's like count
