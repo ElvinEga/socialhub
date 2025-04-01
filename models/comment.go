@@ -1,9 +1,11 @@
 package models
 
-import "time"
+import (
+	"gorm.io/gorm"
+)
 
 type Comment struct {
-	ID              uint   `gorm:"primaryKey" json:"id"`
+	gorm.Model
 	Content         string `gorm:"type:text" json:"content"`
 	UserID          uint   `json:"user_id"`
 	ParentCommentID *uint  `json:"parent_id,omitempty"`
@@ -16,6 +18,4 @@ type Comment struct {
 	Replies       []Comment `gorm:"foreignKey:ParentCommentID" json:"replies,omitempty"`
 	Likes         []Like    `json:"likes" gorm:"foreignKey:CommentID"`
 	IsLiked       bool      `json:"is_liked" gorm:"-"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
 }

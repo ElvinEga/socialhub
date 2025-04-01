@@ -1,9 +1,9 @@
 package models
 
-import "time"
+import "gorm.io/gorm"
 
 type Post struct {
-	ID            uint   `json:"id" gorm:"primaryKey"`
+	gorm.Model
 	Content       string `json:"content"`
 	UserID        uint   `json:"user_id"`
 	PostType      string `gorm:"default:'regular'" json:"post_type"`
@@ -17,7 +17,4 @@ type Post struct {
 	Media    []Media   `json:"media" gorm:"foreignKey:PostID"`
 	Likes    []Like    `json:"likes" gorm:"foreignKey:PostID"`
 	Comments []Comment `json:"comments" gorm:"foreignKey:PostID"`
-
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
 }
