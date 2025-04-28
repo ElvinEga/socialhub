@@ -25,6 +25,7 @@ type AIChatPostResponse struct {
 	CreatedAt time.Time             `json:"created_at"`
 	UpdatedAt time.Time             `json:"updated_at"`
 	Messages  []ChatMessageResponse `json:"messages"`
+	Media     []models.Media        `json:"media"`
 }
 
 // ChatMessageResponse defines the response structure for a chat message.
@@ -43,6 +44,7 @@ type ErrorResponse struct {
 
 type Request struct {
 	Content string `json:"content"`
+	Files   []*multipart.FileHeader `form:"files"`
 }
 
 // CreateAIChatPost godoc
@@ -56,52 +58,101 @@ type Request struct {
 // @Failure 400 {object} ErrorResponse
 // @Router /api/ai-posts [post]
 func CreateAIChatPost(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(uint)
+    userID := c.Locals("user_id").(uint)
 
-	type Request struct {
-		Content string `json:"content"`
-	}
-	var body Request
-	if err := c.BodyParser(&body); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
-	}
+    // Parse multipart form
+    if err := c.ParseMultipartForm(); err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error": "Failed to parse multipart form",
+        })
+    }
 
-	if body.Content == "" {
-		// If the Content field is empty, return a 400 Bad Request status with an error message
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Content cannot be empty"})
-	}
+    content := c.FormValue("content", "")
+    if content == "" {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error": "Content cannot be empty",
+        })
+    }
 
-	// Create a new Post with PostType "ai"
-	post := models.Post{
-		Content:  body.Content,
-		UserID:   userID,
-		PostType: "ai",
-	}
-	if err := models.DB.Create(&post).Error; err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
-	}
+    // Start a transaction
+    tx := models.DB.Begin()
 
-	// Create the initial chat message (the user's prompt)
-	// message := models.ChatMessage{
-	// 	PostID:    post.ID,
-	// 	Sender:    "user",
-	// 	Content:   body.Content,
-	// 	CreatedAt: time.Now(),
-	// }
-	// if err := models.DB.Create(&message).Error; err != nil {
-	// 	return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
-	// }
+    // Create a new Post with PostType "ai"
+    post := models.Post{
+        Content:  content,
+        UserID:   userID,
+        PostType: "ai",
+    }
 
-	response := AIChatPostResponse{
-		ID:        post.ID,
-		UserID:    post.UserID,
-		PostType:  post.PostType,
-		Content:   post.Content,
-		CreatedAt: post.CreatedAt,
-		UpdatedAt: post.UpdatedAt,
-		Messages:  []ChatMessageResponse{},
-	}
-	return c.Status(fiber.StatusCreated).JSON(response)
+    if err := tx.Create(&post).Error; err != nil {
+        tx.Rollback()
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": err.Error(),
+        })
+    }
+
+    // Handle file uploads if any
+    if form, err := c.MultipartForm(); err == nil && form.File != nil {
+        files := form.File["files"]
+        if len(files) > 0 {
+            uploadcareService := services.GetUploadcareService()
+
+            for _, file := range files {
+                // Upload file to Uploadcare
+                uploadResult, err := uploadcareService.UploadFile(file)
+                if err != nil {
+                    tx.Rollback()
+                    return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+                        "error": fmt.Sprintf("Failed to upload file: %v", err),
+                    })
+                }
+
+                // Create Media record
+                mediaType := services.DetermineMediaType(uploadResult.MimeType)
+                mediaItem := models.Media{
+                    PostID:  post.ID,
+                    UserID:  userID,
+                    URL:     uploadResult.URL,
+                    Type:    mediaType,
+                    AltText: filepath.Base(file.Filename),
+                }
+
+                if err := tx.Create(&mediaItem).Error; err != nil {
+                    tx.Rollback()
+                    return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+                        "error": "Failed to save media item",
+                    })
+                }
+            }
+        }
+    }
+
+    // Commit the transaction
+    if err := tx.Commit().Error; err != nil {
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Failed to commit transaction",
+        })
+    }
+
+    // Reload the post with all relationships
+    var completePost models.Post
+    if err := models.DB.Preload("Media").First(&completePost, post.ID).Error; err != nil {
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Failed to load post relationships",
+        })
+    }
+
+    response := AIChatPostResponse{
+        ID:        completePost.ID,
+        UserID:    completePost.UserID,
+        PostType:  completePost.PostType,
+        Content:   completePost.Content,
+        CreatedAt: completePost.CreatedAt,
+        UpdatedAt: completePost.UpdatedAt,
+        Messages:  []ChatMessageResponse{},
+    }
+
+    return c.Status(fiber.StatusCreated).JSON(response)
 }
 
 // AddChatMessage godoc
@@ -174,9 +225,10 @@ func GetAIChatPost(c *fiber.Ctx) error {
 	}
 
 	var post models.Post
-	if err := models.DB.First(&post, postID).Error; err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Post not found"})
-	}
+    if err := models.DB.Preload("Media").First(&post, postID).Error; err != nil {
+        return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Post not found"})
+    }
+
 	if post.PostType != "ai" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Not an AI chat post"})
 	}
@@ -204,6 +256,7 @@ func GetAIChatPost(c *fiber.Ctx) error {
 		CreatedAt: post.CreatedAt,
 		UpdatedAt: post.UpdatedAt,
 		Messages:  chatMessages,
+		Media:     post.Media,
 	}
 	return c.JSON(response)
 }
