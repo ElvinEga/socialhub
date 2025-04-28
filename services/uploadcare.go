@@ -17,8 +17,9 @@ type UploadcareService struct {
 }
 
 type UploadcareResponse struct {
-	FileID string `json:"uuid"`
-	URL    string `json:"original_file_url"`
+    FileID string `json:"uuid"`
+    URL    string `json:"original_file_url"`
+    MimeType string `json:"mime_type"`
 }
 
 var uploadcareService *UploadcareService
@@ -97,4 +98,17 @@ func (s *UploadcareService) UploadFile(file *multipart.FileHeader) (*UploadcareR
 	}
 
 	return &result, nil
+}
+
+func DetermineMediaType(mimeType string) models.MediaType {
+    switch {
+    case strings.HasPrefix(mimeType, "image/gif"):
+        return models.GifType
+    case strings.HasPrefix(mimeType, "image/"):
+        return models.ImageType
+    case strings.HasPrefix(mimeType, "video/"):
+        return models.VideoType
+    default:
+        return models.ImageType
+    }
 }
