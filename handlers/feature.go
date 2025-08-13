@@ -8,6 +8,21 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+// CreateFeature godoc
+// @Summary Create a new feature
+// @Description Add a new feature to an existing project
+// @Tags features
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param id path int true "Project ID"
+// @Param feature body models.Feature true "Feature details"
+// @Success 201 {object} models.Feature
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /projects/{id}/features [post]
 func CreateFeature() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		user := c.Locals("user").(models.User)
@@ -37,6 +52,18 @@ func CreateFeature() fiber.Handler {
 	}
 }
 
+// GeneratePRD godoc
+// @Summary Generate PRD for a feature
+// @Description Generate a Product Requirements Document using AI
+// @Tags features
+// @Produce json
+// @Security ApiKeyAuth
+// @Param id path int true "Feature ID"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /features/{id}/generate-prd [post]
 func GeneratePRD(projectService *project.Service) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		user := c.Locals("user").(models.User)
@@ -53,6 +80,19 @@ func GeneratePRD(projectService *project.Service) fiber.Handler {
 	}
 }
 
+// GetFeaturePRD godoc
+// @Summary Get feature PRD
+// @Description Retrieve the Product Requirements Document for a feature
+// @Tags features
+// @Produce json
+// @Security ApiKeyAuth
+// @Param id path int true "Feature ID"
+// @Success 200 {object} models.Prd
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /features/{id}/prd [get]
 func GetFeaturePRD() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		user := c.Locals("user").(models.User)

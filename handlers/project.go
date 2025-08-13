@@ -8,6 +8,19 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+// CreateProject godoc
+// @Summary Create a new project
+// @Description Create a new project with AI-generated plan
+// @Tags projects
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param project body models.Project true "Project details"
+// @Success 201 {object} models.Project
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /projects [post]
 func CreateProject(projectService *project.Service) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		user := c.Locals("user").(models.User)
@@ -25,6 +38,16 @@ func CreateProject(projectService *project.Service) fiber.Handler {
 	}
 }
 
+// GetProjects godoc
+// @Summary Get user's projects
+// @Description Retrieve all projects for the authenticated user
+// @Tags projects
+// @Produce json
+// @Security ApiKeyAuth
+// @Success 200 {array} models.Project
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /projects [get]
 func GetProjects() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		user := c.Locals("user").(models.User)
@@ -38,6 +61,19 @@ func GetProjects() fiber.Handler {
 	}
 }
 
+// GetProject godoc
+// @Summary Get project details
+// @Description Get detailed information about a specific project
+// @Tags projects
+// @Produce json
+// @Security ApiKeyAuth
+// @Param id path int true "Project ID"
+// @Success 200 {object} models.Project
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /projects/{id} [get]
 func GetProject() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		user := c.Locals("user").(models.User)

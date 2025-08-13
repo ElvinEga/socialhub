@@ -13,12 +13,12 @@ type AIService struct {
 	model  string
 }
 
-func NewAIService(apiKey, model string) *AIService { // Add model parameter
+func NewAIService(apiKey, model string) *AIService {
 	config := openai.DefaultConfig(apiKey)
 	config.BaseURL = "https://openrouter.ai/api/v1"
 	return &AIService{
 		client: openai.NewClientWithConfig(config),
-		model:  model, // Store the model
+		model:  model,
 	}
 }
 
@@ -45,8 +45,8 @@ Use the create_project_plan function to return this information in a structured 
 					Content: prompt,
 				},
 			},
-			Functions:    FunctionSchemas,
-			FunctionCall: "auto",
+			Tools:      FunctionSchemasToTools(FunctionSchemas),
+			ToolChoice: "auto",
 		},
 	)
 
@@ -54,18 +54,23 @@ Use the create_project_plan function to return this information in a structured 
 		return nil, fmt.Errorf("AI request failed: %w", err)
 	}
 
-	if len(resp.Choices) == 0 || resp.Choices[0].Message.FunctionCall == nil {
-		return nil, fmt.Errorf("AI didn't call the expected function")
+	if len(resp.Choices) == 0 {
+		return nil, fmt.Errorf("AI didn't return any choices")
 	}
 
-	functionCall := resp.Choices[0].Message.FunctionCall
-	if functionCall.Name != "create_project_plan" {
-		return nil, fmt.Errorf("unexpected function called: %s", functionCall.Name)
+	message := resp.Choices[0].Message
+	if len(message.ToolCalls) == 0 {
+		return nil, fmt.Errorf("AI didn't call any tools")
+	}
+
+	toolCall := message.ToolCalls[0]
+	if toolCall.Function.Name != "create_project_plan" {
+		return nil, fmt.Errorf("unexpected tool called: %s", toolCall.Function.Name)
 	}
 
 	var plan ProjectPlan
-	if err := json.Unmarshal([]byte(functionCall.Arguments), &plan); err != nil {
-		return nil, fmt.Errorf("failed to parse function arguments: %w", err)
+	if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &plan); err != nil {
+		return nil, fmt.Errorf("failed to parse tool arguments: %w", err)
 	}
 
 	return &plan, nil
@@ -86,15 +91,15 @@ Use the create_prd function to return this information in markdown format.`,
 	resp, err := s.client.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
-			Model: openai.GPT4TurboPreview,
+			Model: s.model,
 			Messages: []openai.ChatCompletionMessage{
 				{
 					Role:    openai.ChatMessageRoleUser,
 					Content: prompt,
 				},
 			},
-			Functions:    FunctionSchemas,
-			FunctionCall: "auto",
+			Tools:      FunctionSchemasToTools(FunctionSchemas),
+			ToolChoice: "auto",
 		},
 	)
 
@@ -102,23 +107,41 @@ Use the create_prd function to return this information in markdown format.`,
 		return nil, fmt.Errorf("AI request failed: %w", err)
 	}
 
-	if len(resp.Choices) == 0 || resp.Choices[0].Message.FunctionCall == nil {
-		return nil, fmt.Errorf("AI didn't call the expected function")
+	if len(resp.Choices) == 0 {
+		return nil, fmt.Errorf("AI didn't return any choices")
 	}
 
-	functionCall := resp.Choices[0].Message.FunctionCall
-	if functionCall.Name != "create_prd" {
-		return nil, fmt.Errorf("unexpected function called: %s", functionCall.Name)
+	message := resp.Choices[0].Message
+	if len(message.ToolCalls) == 0 {
+		return nil, fmt.Errorf("AI didn't call any tools")
+	}
+
+	toolCall := message.ToolCalls[0]
+	if toolCall.Function.Name != "create_prd" {
+		return nil, fmt.Errorf("unexpected tool called: %s", toolCall.Function.Name)
 	}
 
 	var prd PRDContent
-	if err := json.Unmarshal([]byte(functionCall.Arguments), &prd); err != nil {
-		return nil, fmt.Errorf("failed to parse function arguments: %w", err)
+	if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &prd); err != nil {
+		return nil, fmt.Errorf("failed to parse tool arguments: %w", err)
 	}
 
 	return &prd, nil
 }
 
+// Helper function to convert function schemas to tools
+func FunctionSchemasToTools(functionSchemas []openai.FunctionDefinition) []openai.Tool {
+	tools := make([]openai.Tool, len(functionSchemas))
+	for i, functionSchema := range functionSchemas {
+		tools[i] = openai.Tool{
+			Type:     "function",
+			Function: &functionSchema,
+		}
+	}
+	return tools
+}
+
+// Structs to match function schemas
 type ProjectPlan struct {
 	Features      []FeatureData `json:"features"`
 	TechStack     TechStackData `json:"tech_stack"`
