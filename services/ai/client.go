@@ -1,0 +1,145 @@
+package ai
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+
+	"github.com/ElvinEga/go-openai"
+)
+
+type AIService struct {
+	client *openai.Client
+}
+
+func NewAIService(apiKey string) *AIService {
+	config := openai.DefaultConfig(apiKey)
+	config.BaseURL = "https://openrouter.ai/api/v1"
+	return &AIService{
+		client: openai.NewClientWithConfig(config),
+	}
+}
+
+func (s *AIService) GenerateProjectPlan(projectName, projectDescription string) (*ProjectPlan, error) {
+	prompt := fmt.Sprintf(`Create a comprehensive project plan for:
+Project Name: %s
+Project Description: %s
+
+Please provide:
+1. A list of key features with overviews and details
+2. A technology stack with description and individual technologies
+3. A detailed build strategy
+
+Use the create_project_plan function to return this information in a structured format.`,
+		projectName, projectDescription)
+
+	resp, err := s.client.CreateChatCompletion(
+		context.Background(),
+		openai.ChatCompletionRequest{
+			Model: openai.GPT4TurboPreview,
+			Messages: []openai.ChatCompletionMessage{
+				{
+					Role:    openai.ChatMessageRoleUser,
+					Content: prompt,
+				},
+			},
+			Functions:    FunctionSchemas,
+			FunctionCall: "auto",
+		},
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("AI request failed: %w", err)
+	}
+
+	if len(resp.Choices) == 0 || resp.Choices[0].Message.FunctionCall == nil {
+		return nil, fmt.Errorf("AI didn't call the expected function")
+	}
+
+	functionCall := resp.Choices[0].Message.FunctionCall
+	if functionCall.Name != "create_project_plan" {
+		return nil, fmt.Errorf("unexpected function called: %s", functionCall.Name)
+	}
+
+	var plan ProjectPlan
+	if err := json.Unmarshal([]byte(functionCall.Arguments), &plan); err != nil {
+		return nil, fmt.Errorf("failed to parse function arguments: %w", err)
+	}
+
+	return &plan, nil
+}
+
+func (s *AIService) GeneratePRD(featureName, projectDescription string) (*PRDContent, error) {
+	prompt := fmt.Sprintf(`Generate a comprehensive Product Requirements Document (PRD) for the feature "%s" in a project described as: "%s".
+
+The PRD should include:
+- User stories
+- Acceptance criteria
+- Technical specifications
+- Success metrics
+
+Use the create_prd function to return this information in markdown format.`,
+		featureName, projectDescription)
+
+	resp, err := s.client.CreateChatCompletion(
+		context.Background(),
+		openai.ChatCompletionRequest{
+			Model: openai.GPT4TurboPreview,
+			Messages: []openai.ChatCompletionMessage{
+				{
+					Role:    openai.ChatMessageRoleUser,
+					Content: prompt,
+				},
+			},
+			Functions:    FunctionSchemas,
+			FunctionCall: "auto",
+		},
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("AI request failed: %w", err)
+	}
+
+	if len(resp.Choices) == 0 || resp.Choices[0].Message.FunctionCall == nil {
+		return nil, fmt.Errorf("AI didn't call the expected function")
+	}
+
+	functionCall := resp.Choices[0].Message.FunctionCall
+	if functionCall.Name != "create_prd" {
+		return nil, fmt.Errorf("unexpected function called: %s", functionCall.Name)
+	}
+
+	var prd PRDContent
+	if err := json.Unmarshal([]byte(functionCall.Arguments), &prd); err != nil {
+		return nil, fmt.Errorf("failed to parse function arguments: %w", err)
+	}
+
+	return &prd, nil
+}
+
+type ProjectPlan struct {
+	Features      []FeatureData `json:"features"`
+	TechStack     TechStackData `json:"tech_stack"`
+	BuildStrategy string        `json:"build_strategy"`
+}
+
+type FeatureData struct {
+	Name     string `json:"name"`
+	Overview string `json:"overview"`
+	Details  string `json:"details"`
+}
+
+type TechStackData struct {
+	Description string          `json:"description"`
+	Items       []StackItemData `json:"items"`
+}
+
+type StackItemData struct {
+	Name     string `json:"name"`
+	Overview string `json:"overview"`
+	Details  string `json:"details"`
+}
+
+type PRDContent struct {
+	Content string `json:"content"`
+}
