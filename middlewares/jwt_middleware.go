@@ -3,6 +3,7 @@ package middlewares
 import (
 	"socialmedia/blacklist"
 	"socialmedia/config"
+	"socialmedia/models"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -48,5 +49,11 @@ func JWTMiddleware(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid user ID in token"})
 	}
 	c.Locals("user_id", uint(userIDFloat))
+
+	var user models.User
+	if err := models.DB.First(&user, uint(userIDFloat)).Error; err != nil {
+		return c.Status(401).JSON(fiber.Map{"error": "User not found"})
+	}
+	c.Locals("user", user)
 	return c.Next()
 }

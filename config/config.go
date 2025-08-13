@@ -17,9 +17,8 @@ var (
 	GoogleRedirectURL   string
 	UploadcarePublicKey string
 	UploadcareSecretKey string
-
-	// JWT secret key
-	JWTSecret string
+	OpenRouterAPIKey    string
+	JWTSecret           string
 )
 
 func InitConfig() {
@@ -39,6 +38,7 @@ func InitConfig() {
 	GoogleRedirectURL = os.Getenv("GOOGLE_REDIRECT_URL")
 	UploadcarePublicKey = os.Getenv("UPLOADCARE_PUBLIC_KEY")
 	UploadcareSecretKey = os.Getenv("UPLOADCARE_SECRET_KEY")
+	OpenRouterAPIKey = os.Getenv("OPENROUTER_API_KEY")
 
 	JWTSecret = os.Getenv("JWT_SECRET")
 	if JWTSecret == "" {

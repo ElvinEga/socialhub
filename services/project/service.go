@@ -13,8 +13,8 @@ type Service struct {
 	ai *ai.AIService
 }
 
-func NewService(db *gorm.DB, ai *ai.AIService) *Service {
-	return &Service{db: db, ai: ai}
+func NewService(ai *ai.AIService) *Service {
+	return &Service{db: models.DB, ai: ai}
 }
 
 func (s *Service) CreateProjectWithAIPlanning(project *models.Project, userID uint) error {

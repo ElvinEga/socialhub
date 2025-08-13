@@ -6,10 +6,9 @@ import (
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
-	"gorm.io/gorm"
 )
 
-func CreateProject(db *gorm.DB, projectService *project.Service) fiber.Handler {
+func CreateProject(projectService *project.Service) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		user := c.Locals("user").(models.User)
 
@@ -26,12 +25,12 @@ func CreateProject(db *gorm.DB, projectService *project.Service) fiber.Handler {
 	}
 }
 
-func GetProjects(db *gorm.DB) fiber.Handler {
+func GetProjects() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		user := c.Locals("user").(models.User)
 
 		var projects []models.Project
-		if err := db.Where("user_id = ?", user.ID).Preload("Features").Find(&projects).Error; err != nil {
+		if err := models.DB.Where("user_id = ?", user.ID).Preload("Features").Find(&projects).Error; err != nil {
 			return c.Status(500).JSON(fiber.Map{"error": "Failed to fetch projects"})
 		}
 
@@ -39,7 +38,7 @@ func GetProjects(db *gorm.DB) fiber.Handler {
 	}
 }
 
-func GetProject(db *gorm.DB) fiber.Handler {
+func GetProject() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		user := c.Locals("user").(models.User)
 		id, err := strconv.Atoi(c.Params("id"))
@@ -48,7 +47,7 @@ func GetProject(db *gorm.DB) fiber.Handler {
 		}
 
 		var project models.Project
-		if err := db.Preload("TechStack.StackItems").Preload("Features.Prd").
+		if err := models.DB.Preload("TechStack.StackItems").Preload("Features.Prd").
 			Where("id = ? AND user_id = ?", id, user.ID).First(&project).Error; err != nil {
 			return c.Status(404).JSON(fiber.Map{"error": "Project not found"})
 		}

@@ -1,13 +1,19 @@
 package routes
 
 import (
+	"socialmedia/config"
 	"socialmedia/controllers"
+	"socialmedia/handlers"
 	"socialmedia/middlewares"
+	"socialmedia/services/ai"
+	"socialmedia/services/project"
 
 	"github.com/gofiber/fiber/v2"
 )
 
 func Setup(app *fiber.App) {
+	aiService := ai.NewAIService(config.OpenRouterAPIKey)
+	projectService := project.NewService(aiService)
 	api := app.Group("/api")
 
 	// Public routes.
@@ -49,4 +55,17 @@ func Setup(app *fiber.App) {
 	// api.Post("/ai-posts/:id/messages", controllers.AddChatMessage)
 	api.Post("/ai-posts/:id/messages", controllers.SendAIChatMessage)
 	api.Get("/ai-posts/:id", controllers.GetAIChatPost)
+
+	// Protected routes
+	protected := api.Group("/agent")
+
+	// Project routes
+	protected.Post("/projects", handlers.CreateProject(projectService))
+	protected.Get("/projects", handlers.GetProjects())
+	protected.Get("/projects/:id", handlers.GetProject())
+
+	// Feature routes
+	protected.Post("/projects/:id/features", handlers.CreateFeature())
+	protected.Post("/features/:id/generate-prd", handlers.GeneratePRD(projectService))
+	protected.Get("/features/:id/prd", handlers.GetFeaturePRD())
 }

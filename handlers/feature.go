@@ -6,10 +6,9 @@ import (
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
-	"gorm.io/gorm"
 )
 
-func CreateFeature(db *gorm.DB) fiber.Handler {
+func CreateFeature() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		user := c.Locals("user").(models.User)
 		projectID, err := strconv.Atoi(c.Params("id"))
@@ -18,7 +17,7 @@ func CreateFeature(db *gorm.DB) fiber.Handler {
 		}
 
 		var project models.Project
-		if err := db.Where("id = ? AND user_id = ?", projectID, user.ID).First(&project).Error; err != nil {
+		if err := models.DB.Where("id = ? AND user_id = ?", projectID, user.ID).First(&project).Error; err != nil {
 			return c.Status(404).JSON(fiber.Map{"error": "Project not found"})
 		}
 
@@ -30,7 +29,7 @@ func CreateFeature(db *gorm.DB) fiber.Handler {
 		feature.ProjectID = project.ID
 		feature.UserID = user.ID
 
-		if err := db.Create(&feature).Error; err != nil {
+		if err := models.DB.Create(&feature).Error; err != nil {
 			return c.Status(500).JSON(fiber.Map{"error": "Failed to create feature"})
 		}
 
@@ -38,7 +37,7 @@ func CreateFeature(db *gorm.DB) fiber.Handler {
 	}
 }
 
-func GeneratePRD(db *gorm.DB, projectService *project.Service) fiber.Handler {
+func GeneratePRD(projectService *project.Service) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		user := c.Locals("user").(models.User)
 		featureID, err := strconv.Atoi(c.Params("id"))
@@ -54,7 +53,7 @@ func GeneratePRD(db *gorm.DB, projectService *project.Service) fiber.Handler {
 	}
 }
 
-func GetFeaturePRD(db *gorm.DB) fiber.Handler {
+func GetFeaturePRD() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		user := c.Locals("user").(models.User)
 		featureID, err := strconv.Atoi(c.Params("id"))
@@ -63,7 +62,7 @@ func GetFeaturePRD(db *gorm.DB) fiber.Handler {
 		}
 
 		var prd models.Prd
-		if err := db.Where("feature_id = ? AND user_id = ?", featureID, user.ID).First(&prd).Error; err != nil {
+		if err := models.DB.Where("feature_id = ? AND user_id = ?", featureID, user.ID).First(&prd).Error; err != nil {
 			return c.Status(404).JSON(fiber.Map{"error": "PRD not found"})
 		}
 
