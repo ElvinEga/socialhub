@@ -20,5 +20,5 @@ func ConnectDatabase() *gorm.DB {
 }
 
 func Migrate(db *gorm.DB) {
-	db.AutoMigrate(&User{}, &Post{}, &Comment{}, &Like{}, &Follow{}, &ChatMessage{})
+	db.AutoMigrate(&User{}, &Post{}, &Comment{}, &Like{}, &Follow{}, &ChatMessage{}, &Media{})
 }

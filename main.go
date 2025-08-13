@@ -10,6 +10,7 @@ import (
 	fiberSwagger "github.com/swaggo/fiber-swagger"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 )
 
 func main() {
@@ -22,6 +23,12 @@ func main() {
 
 	// Initialize the Fiber app
 	app := fiber.New()
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     "http://localhost:3000,https://tours-dashboard-pi.vercel.app", // or your Next.js URL
+		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
+		AllowCredentials: true,
+	}))
 	app.Get("/swagger/*", fiberSwagger.WrapHandler)
 
 	// Register API routes
