@@ -10,13 +10,15 @@ import (
 
 type AIService struct {
 	client *openai.Client
+	model  string
 }
 
-func NewAIService(apiKey string) *AIService {
+func NewAIService(apiKey, model string) *AIService { // Add model parameter
 	config := openai.DefaultConfig(apiKey)
 	config.BaseURL = "https://openrouter.ai/api/v1"
 	return &AIService{
 		client: openai.NewClientWithConfig(config),
+		model:  model, // Store the model
 	}
 }
 
@@ -36,7 +38,7 @@ Use the create_project_plan function to return this information in a structured 
 	resp, err := s.client.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
-			Model: openai.GPT4TurboPreview,
+			Model: s.model,
 			Messages: []openai.ChatCompletionMessage{
 				{
 					Role:    openai.ChatMessageRoleUser,

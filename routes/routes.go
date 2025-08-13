@@ -12,7 +12,7 @@ import (
 )
 
 func Setup(app *fiber.App) {
-	aiService := ai.NewAIService(config.OpenRouterAPIKey)
+	aiService := ai.NewAIService(config.OpenRouterAPIKey, config.AIModel)
 	projectService := project.NewService(aiService)
 	api := app.Group("/api")
 
